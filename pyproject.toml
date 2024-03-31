@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "motorsim"
+version = "0.1.0"
+description = "Motor Simulation for DC  and PMSM motors"
+authors = ["hassanarif <hassanarif87@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.26.4"
+scipy = "^1.12.0"
+control = "^0.9.4"
+pandas = "^2.2.1"
+plotly = "^5.20.0"
+slycot = "^0.5.4"
+nbformat = "^5.10.3"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
