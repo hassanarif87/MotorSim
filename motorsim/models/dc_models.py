@@ -40,7 +40,7 @@ def dc_motor_output(
         t: float, 
         x: npt.ArrayLike, 
         u: npt.ArrayLike, 
-        params: dict) -> float:
+        params: dict) -> npt.ArrayLike:
     """Eom of a simple DC motor with an attached load 
 
     Args:
@@ -52,4 +52,4 @@ def dc_motor_output(
     Returns:
         motor velocity
     """
-    return x[1]
+    return x
