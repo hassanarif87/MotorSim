@@ -36,7 +36,7 @@ def pmsm_dq_motor_deriv(
     i_q = x[1]
     omega = x[1]
     dot_id = (-r_p *i_d + n_p * omega *l_q*i_q + u_d) / l_q
-    dot_iq = (-r_p *i_q + omega * ( n_p * l_q + ke) + u_q) / l_q
+    dot_iq = (-r_p *i_q -  omega * ( n_p * l_q * i_d + ke) + u_q) / l_q
 
     dot_omega = (kt*x[0]  - load_trq - viscous_friction *x[1]) / rotor_inertia
 
@@ -80,11 +80,11 @@ def simple_pmsm_motor_deriv(
     """
     
     kt= params.get('Kt', 0.1) # Torque constant 
-    ke= params.get('Ke', 0.1) # Torque constant Kt = Ke 
+    ke= params.get('Ke', 0.1) # Torque constant 
     v_max = params.get('V_max', 10) # Battery voltage
     l_q = params.get('Lq', 0.03) # Motor dq inductance assuming Lq = Ld
     r_p = params.get('Rm', 0.03) # Motor phase resistance
-    n_p = params.get('np', 0.03) # Pole pairs
+    n_p = params.get('np', 1) # Pole pairs
     rotor_inertia = params.get('J', 0.03) # Rotor inertia 
     viscous_friction = params.get('b', 0) # viscous friction
     u_q_in = u[0]
@@ -93,10 +93,15 @@ def simple_pmsm_motor_deriv(
     i_q = x[0]
     omega = x[1]
     u_d = n_p * omega *l_q*i_q  # Assuming dot_id  = 0, i_d = 0
+    u_q = u_q_in
+    # Assuming SVPWM
+    # u_q =  np.sqrt(
+    #     np.min([
+    #         u_q_in**2, 
+    #         v_max**2/3 - u_d**2])
+    #     ) # Assuming SVPWM 
 
-    u_q =  np.sqrt( np.min(u_q_in**2, v_max**2/3 - u_d**2)) # Assuming SVPWM 
-
-    dot_iq = (-r_p *i_q + omega * ( n_p * l_q + ke) + u_q) / l_q
+    dot_iq = (-r_p * i_q - omega *  ke + u_q) / l_q
 
     dot_omega = (kt*x[0]  - load_trq - viscous_friction *x[1]) / rotor_inertia
 
