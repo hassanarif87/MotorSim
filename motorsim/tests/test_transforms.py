@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from motorsim.utils.clark_park_transforms import clarke_park, clarke_park_inv
+from motorsim.models.clark_park_transforms import clarke_park, clarke_park_inv
 
 def test_clarke_park():
     # Define input parameters
