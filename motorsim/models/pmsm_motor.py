@@ -38,7 +38,7 @@ def pmsm_dq0_motor_deriv(
     dot_id = (-r_p *i_d + n_p * omega *l_q*i_q + u_d) / l_q
     dot_iq = (-r_p *i_q + omega * ( n_p * l_q + ke) + u_q) / l_q
 
-    dot_omega = (kt*x[0]  - load_trq * viscous_friction *x[1]) / rotor_inertia
+    dot_omega = (kt*x[0]  - load_trq - viscous_friction *x[1]) / rotor_inertia
 
     return np.array([dot_id, dot_iq,dot_omega])
 

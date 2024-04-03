@@ -12,8 +12,12 @@ def dc_motor_deriv(
     V=Keω=Ke Θa˙
     Args:
         t : simulation time (s)
-        x : state vector, omega rotational speed of the motor rad/s
-        u : Input vector, [Voltage modulation fraction(PWM),  V_dc * u; load on the motor Nm]
+        x : state vector, 
+            i_m motor armature current A
+            omega rotational speed of the motor rad/s
+        u : Input vector
+            Voltage modulation fraction(PWM),  (V_dc * u)
+            load on the motor Nm
         params : Physical parameters of the motor
 
     Returns:
@@ -32,7 +36,7 @@ def dc_motor_deriv(
     # Map the states into local variable names
     
     dot_i = (v_applied - r_m*x[0] - kt*x[1] ) / l_m
-    dot_omega = (kt*x[0]  - load_trq * viscous_friction *x[1]) / rotor_inertia
+    dot_omega = (kt*x[0]  - load_trq - viscous_friction *x[1]) / rotor_inertia
 
     return np.array([dot_i, dot_omega])
 

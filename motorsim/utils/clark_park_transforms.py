@@ -41,4 +41,4 @@ def clarke_park(theta_e: float, u_phase: np.array):
         [np.cos(theta_e), np.sin(theta_e)],
         [ -np.sin(theta_e), np.cos(theta_e)]
         ])
-    return clark @ park @ u_phase
+    return park @ clark @ u_phase
