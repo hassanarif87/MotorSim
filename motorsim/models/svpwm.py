@@ -1,7 +1,7 @@
 
 import numpy as np
 
-def svpwm(theta_el: float, Vdq: np.array, Vdc: float):
+def svpwm(theta_el: float, Vd, Vq, Vdc: float):
     """_summary_
     Space-vector PWM to compute phase voltage from direct/quadrature vectors.
 
@@ -18,10 +18,10 @@ def svpwm(theta_el: float, Vdq: np.array, Vdc: float):
     """
 
     # Compute amplitude and angle - clamping as needed
-    Uout = np.linalg.norm(Vdq) / Vdc * np.sqrt(3)
+    Uout = np.linalg.norm([Vd, Vq]) / Vdc * np.sqrt(3)
     Uout = min(Uout, 1)
 
-    angle = (theta_el + np.arctan2(Vdq[1], Vdq[0])) % (2 * np.pi)
+    angle = (theta_el + np.arctan2(Vd, Vq)) % (2 * np.pi)
 
     # Find the sector
     sector = np.floor(angle / (np.pi / 3.0)) + 1
@@ -57,8 +57,11 @@ def svpwm(theta_el: float, Vdq: np.array, Vdc: float):
           Tc = T1 + T0/2
 
     # Calculate the phase voltages, recentering them
-    average = (Ta + Tb + Tc) / 3.0
-    Ua = (Ta - average) * Vdc / np.sqrt(3)
-    Ub = (Tb - average) * Vdc / np.sqrt(3)
-    Uc = (Tc - average) * Vdc / np.sqrt(3)
+    #average = (Ta + Tb + Tc) / 3.0
+    #Ua = (Ta - average) * Vdc / np.sqrt(3)
+    #Ub = (Tb - average) * Vdc / np.sqrt(3)
+    #Uc = (Tc - average) * Vdc / np.sqrt(3)
+    Ua = (Ta) * Vdc
+    Ub = (Tb) * Vdc
+    Uc = (Tc) * Vdc
     return np.array([Ua, Ub, Uc])

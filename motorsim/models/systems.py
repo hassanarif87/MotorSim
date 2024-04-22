@@ -30,7 +30,7 @@ def build_simple_pmsm_plant(params_in):
     """
     plant = ct.NonlinearIOSystem(
         simple_pmsm_motor_deriv, simple_pmsm_motor_output, 
-        inputs=('u_q', 'load'), outputs=('i_q', 'omega'),
+        inputs=('u_q'), outputs=('i_q', 'omega'),
         states=('i_q', 'omega'), name='simple_pmsm',
         params=params_in
     )
