@@ -40,6 +40,7 @@ def dc_motor_deriv(
 
     return np.array([dot_i, dot_omega])
 
+    
 def dc_motor_output(
         t: float, 
         x: npt.ArrayLike, 
@@ -57,3 +58,26 @@ def dc_motor_output(
         motor velocity
     """
     return x
+
+def dc_motor_elec_deriv(        
+        t: float, 
+        x: npt.ArrayLike, 
+        u: npt.ArrayLike, 
+        params: dict) -> npt.ArrayLike:
+    """Electrical equations of a simple DC motor
+
+    Args:
+        t : simulation time (s)
+        x : state vector, armature current
+        u : Input vector, Voltage modulation fraction,  V_dc * u
+        params : Physical parameters of the motor
+
+    Returns:
+        motor velocity
+    """
+    v_dc = params.get('v_dc', 10) # Battery voltage
+    l_m = params.get('Lm', 0.03) # Motor inductance
+    r_m = params.get('Rm', 0.03) # Motor winding resistance
+
+    v_applied = np.clip(v_dc * u[0], -v_dc, v_dc)
+    return v_applied - r_m*x[0]  / l_m

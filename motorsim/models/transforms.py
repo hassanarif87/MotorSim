@@ -42,3 +42,30 @@ def clarke_park(theta_e: float, u_phase: np.array):
         [ -np.sin(theta_e), np.cos(theta_e)]
         ])
     return park @ clark @ u_phase
+
+
+def svpwm(el_theta: float, ud: float, uq: float, u_supply: float) -> np.array:
+    """Space-vector PWM to compute phase voltage from direct/quadrature vectors.
+
+    This code is derived from the version presented in the SimpleFOC library,
+    https://docs.simplefoc.com/foc_theory
+
+    Args:
+        theta_el : Electrical angle (rad)
+        Vdq : Voltage in the quadrature direction (V)
+        Vdc : Supply Voltage V
+
+    Returns:
+        Three phase voltage
+    """
+    U_abc= clarke_park_inv(el_theta, [ud,uq])
+    center = u_supply/2.
+    Umin = min(U_abc[0], min(U_abc[1], U_abc[2]))
+    Umax = max(U_abc[0], max(U_abc[1], U_abc[2]))
+    center -= (Umax+Umin) / 2
+
+    U_abc[0]+= center
+    U_abc[1]+= center
+    U_abc[2]+= center
+
+    return U_abc
