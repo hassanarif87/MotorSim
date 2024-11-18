@@ -1,7 +1,8 @@
 import numpy as np
+import numpy.typing as npt
 
 
-def clarke_park_inv(theta_e: float, u_qd: np.array):
+def clarke_park_inv(theta_e: float, u_qd: npt.ArrayLike) ->npt.ArrayLike:
     """
     Clarke-Park inverse transform
     dq0 (rotor frame) -> alpha beta -> three phase Stator frame
@@ -22,7 +23,7 @@ def clarke_park_inv(theta_e: float, u_qd: np.array):
         ])
     return clark_inv @ park_inv @ u_qd
 
-def clarke_park(theta_e: float, u_phase: np.array):
+def clarke_park(theta_e: float, u_phase: npt.ArrayLike)->npt.ArrayLike:
     """
     Clarke-Park direct transform
     Three phase Stator frame -> alpha beta ->  dq0 (rotor frame) 
@@ -44,7 +45,7 @@ def clarke_park(theta_e: float, u_phase: np.array):
     return park @ clark @ u_phase
 
 
-def svpwm(el_theta: float, ud: float, uq: float, u_supply: float) -> np.array:
+def svpwm(el_theta: float, ud: float, uq: float, u_supply: float) ->npt.ArrayLike:
     """Space-vector PWM to compute phase voltage from direct/quadrature vectors.
 
     This code is derived from the version presented in the SimpleFOC library,
@@ -52,8 +53,9 @@ def svpwm(el_theta: float, ud: float, uq: float, u_supply: float) -> np.array:
 
     Args:
         theta_el : Electrical angle (rad)
-        Vdq : Voltage in the quadrature direction (V)
-        Vdc : Supply Voltage V
+        uq : Voltage in the q direction (V)
+        ud : Voltage in the d direction (V)
+        u_supply : Supply Voltage V
 
     Returns:
         Three phase voltage
