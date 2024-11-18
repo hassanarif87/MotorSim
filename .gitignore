@@ -12,3 +12,5 @@ dist/
 # IDE/Editor
 .vscode/
 .idea/
+ 
+*/**/scratch_*
