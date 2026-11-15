@@ -2,9 +2,8 @@
 __pycache__/
 *.pyc
 
-# Poetry
+# Python environment and build artifacts
 /.venv/
-.poetry/
 *.egg-info/
 dist/
 .build/
