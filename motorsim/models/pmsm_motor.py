@@ -7,7 +7,7 @@ def pmsm_dq_motor_deriv(
         x: npt.ArrayLike, 
         u: npt.ArrayLike, 
         params: dict) -> npt.ArrayLike:
-    """Eom of a simple DC motor with an attached load 
+    """Eom of a PMSM motor with an attached load 
 
     Args:
         t : simulation time (s)
@@ -34,12 +34,12 @@ def pmsm_dq_motor_deriv(
     # Map the states into local variable names
     i_d = x[0]
     i_q = x[1]
-    omega = x[1]
+    omega = x[2]
     dot_id = (-r_p *i_d + n_p * omega *l_q*i_q + u_d) / l_q
     dot_iq = (-r_p *i_q -  omega * ( n_p * l_q * i_d + ke) + u_q) / l_q
     trq = 3/2  * kt * i_q
 
-    dot_omega = (trq  - load_trq - viscous_friction *x[1]) / rotor_inertia
+    dot_omega = (trq  - load_trq - viscous_friction *omega) / rotor_inertia
 
     return np.array([dot_id, dot_iq,dot_omega])
 
@@ -48,7 +48,7 @@ def pmsm_dq_motor_output(
         x: npt.ArrayLike, 
         u: npt.ArrayLike, 
         params: dict) -> npt.ArrayLike:
-    """Eom of a simple DC motor with an attached load 
+    """Eom of a PMSM motor with an attached load 
 
     Args:
         t : simulation time (s)
