@@ -6,24 +6,11 @@
 #include <typeindex>
 #include <unordered_map>
 
-#include <boost/describe.hpp>
 #include <boost/mp11.hpp>
+#include "block_ports.h"
 #include "connections.h"
 
 namespace pmsm {
-
-template <typename T>
-class InputPort {
-public:
-    using Value = T;
-
-    const T& read() const { return *source_; }
-    bool connected() const { return source_ != nullptr; }
-    void bind(const T& source) { source_ = &source; }
-
-private:
-    const T* source_ = nullptr;
-};
 
 struct OutputReader {
     const void* address;

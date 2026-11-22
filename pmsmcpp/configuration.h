@@ -12,7 +12,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include "blocks/plant.h"
 #include "connections.h"
 #include "simulation_executor.h"
 
@@ -110,19 +109,6 @@ inline std::optional<SimulationExecutor::Duration> tick_period(
 }
 
 }  // namespace config_detail
-
-inline void from_json(const nlohmann::json& json, MotorParameters& motor) {
-    using config_detail::bounded_number;
-    motor = {
-        bounded_number(json, "resistance_ohm", true),
-        bounded_number(json, "inductance_h", false),
-        config_detail::positive_integer(json, "pole_pairs"),
-        bounded_number(json, "back_emf_v_per_rad_s", false),
-        bounded_number(json, "torque_constant_nm_per_a", true),
-        bounded_number(json, "inertia_kg_m2", false),
-        bounded_number(json, "viscous_friction_nm_per_rad_s", true),
-    };
-}
 
 inline void from_json(const nlohmann::json& json, BlockSpec& block) {
     json.at("name").get_to(block.name);

@@ -1,6 +1,8 @@
 # PMSM C++ simulation
 
-From the repository root, run the following with Bazelisk or Bazel 8.4.0.
+The simulator builds in C++26 mode with GCC 16.2. Bazel selects `gcc-16`
+from `PATH`. From the repository root, run the following with Bazelisk or
+Bazel 8.4.0.
 
 ```sh
 cd pmsmcpp
@@ -26,13 +28,18 @@ bazel run //:pmsm_sim -- /tmp/my_run.csv my_config.json
 ## Add a new C++ block type
 
 This example adds a periodic current gain that can sit between the speed
-controller and current PI. Add the following inside the
-`pmsm::drive_blocks` namespace in [`blocks/drive_blocks.h`](blocks/drive_blocks.h).
-The factory expects a constructor taking `const BlockSpec&` and public
+controller and current PI. Save it as `blocks/current_gain.h`. The factory expects a constructor taking `const BlockSpec&` and public
 members named `inputs` and `outputs`. Boost.Describe exposes the port names
 and their types to the graph builder.
 
 ```cpp
+#pragma once
+
+#include "block_ports.h"
+#include "configuration.h"
+
+namespace pmsm::drive_blocks {
+
 struct CurrentGainInputs {
     InputPort<Current> current;
 };
@@ -59,14 +66,32 @@ public:
 private:
     double gain_;
 };
+
+}  // namespace pmsm::drive_blocks
 ```
 
-Add `X("current_gain", CurrentGain, periodic)` to the
-`PMSM_BLOCK_TYPES` list in [`drive.h`](drive.h). Append the entry as the
-last line of the macro and add a trailing backslash to the previous line.
-The factory binds `tick()` for periodic blocks. A continuous block exposes
-`advance(SimulationExecutor::Duration)` and owns its integration state.
-A constant block publishes its outputs in its constructor and needs no clock.
+Add this library to [`blocks/BUILD.bazel`](blocks/BUILD.bazel).
+
+```python
+cc_library(
+    name = "current_gain",
+    hdrs = ["current_gain.h"],
+    deps = [
+        "//:block_ports",
+        "//:configuration",
+    ],
+)
+```
+
+Add `//blocks:current_gain` to the `drive` target's dependencies in
+[`BUILD.bazel`](BUILD.bazel).
+
+In [`block_catalog.cpp`](block_catalog.cpp), include `blocks/current_gain.h`
+and append `X("current_gain", CurrentGain)` to `PMSM_BLOCK_TYPES`. Add a
+trailing backslash to the previous entry. The factory recognizes `tick()` as
+a periodic callback and `advance(SimulationExecutor::Duration)` as a
+continuous callback. A block with neither is treated as a constant source
+and can publish its outputs in its constructor.
 
 Start with a fresh copy of the default config and add this instance to
 `blocks`.

@@ -11,9 +11,11 @@ for instructions on editing the model.
 | --- | --- |
 | [`main.cpp`](main.cpp) | Loads the config, constructs the drive, and registers the CSV logger. |
 | [`configuration.h`](configuration.h) | Reads simulation settings and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
-| [`drive.h`](drive.h) | Uses the factory registry to create blocks at stable addresses. Owns the instances and the executor, and registers their callbacks. |
+| [`drive.h`](drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
+| [`block_catalog.cpp`](block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
+| [`block_ports.h`](block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
 | [`block_graph.h`](block_graph.h) | Uses Boost.Describe to discover named ports, validate connections, and resolve CSV readers. |
-| [`blocks/drive_blocks.h`](blocks/drive_blocks.h) | Defines the graph-facing block classes and their typed inputs and outputs. |
+| [`blocks/`](blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
 | [`simulation_executor.h`](simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
 
 The graph's name maps exist during drive construction. Once validation

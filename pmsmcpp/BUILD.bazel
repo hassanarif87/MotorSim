@@ -12,20 +12,37 @@ cc_library(
 )
 
 cc_library(
+    name = "block_ports",
+    hdrs = ["block_ports.h"],
+    visibility = ["//blocks:__pkg__"],
+    deps = ["@boost.describe"],
+)
+
+cc_library(
     name = "block_graph",
     hdrs = ["block_graph.h"],
-    visibility = ["//blocks:__pkg__"],
     deps = [
+        ":block_ports",
         ":connections",
-        "@boost.describe",
         "@boost.mp11",
     ],
 )
 
 cc_library(
     name = "drive",
+    srcs = ["block_catalog.cpp"],
     hdrs = ["drive.h"],
-    deps = ["//blocks:drive_blocks"],
+    deps = [
+        ":block_graph",
+        ":configuration",
+        "//blocks:constant_current",
+        "//blocks:continuous_pmsm",
+        "//blocks:current_feedback",
+        "//blocks:current_pi",
+        "//blocks:inverter",
+        "//blocks:speed_control",
+        "//blocks:svpwm",
+    ],
 )
 
 cc_library(
@@ -41,7 +58,6 @@ cc_library(
     deps = [
         ":connections",
         ":simulation_executor",
-        "//blocks:plant",
         "@nlohmann_json//:json",
     ],
 )

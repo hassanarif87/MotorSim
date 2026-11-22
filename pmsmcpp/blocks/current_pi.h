@@ -1,9 +1,13 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 
 #include "blocks/signals.h"
+
+#include "block_ports.h"
+#include "configuration.h"
 
 namespace pmsm {
 
@@ -66,5 +70,55 @@ private:
     double sample_period_s_;
     Eigen::Vector2d integral_ = Eigen::Vector2d::Zero();
 };
+
+namespace drive_blocks {
+
+/// q-axis reference and measured dq currents (A), plus mechanical speed (rad/s).
+struct PiInputs {
+    InputPort<Current> iq_ref, id, iq;
+    InputPort<Speed> omega;
+};
+BOOST_DESCRIBE_STRUCT(PiInputs, (), (iq_ref, id, iq, omega))
+
+/// Voltage-limited dq commands held between current-loop ticks, in volts.
+struct PiOutputs { Voltage vd, vq; Current id_ref; };
+BOOST_DESCRIBE_STRUCT(PiOutputs, (), (vd, vq, id_ref))
+
+using config_detail::bounded_number;
+using config_detail::number;
+using config_detail::positive_integer;
+
+class CurrentController {
+public:
+    explicit CurrentController(const BlockSpec& spec)
+        : controller_(CurrentPi({
+              bounded_number(spec.parameters, "kp", true), bounded_number(spec.parameters, "ki", true),
+              bounded_number(spec.parameters, "kaw", true),
+              bounded_number(spec.parameters, "inductance_h", false),
+              positive_integer(spec.parameters, "pole_pairs"),
+              bounded_number(spec.parameters, "back_emf_v_per_rad_s", false),
+          }), std::chrono::duration<double>(spec.period.value()).count()),
+          bus_voltage_(bounded_number(spec.parameters, "bus_voltage_v", false)) {
+        outputs.id_ref = number(spec.parameters, "id_reference_a");
+    }
+
+    void tick() {
+        const auto command = controller_.tick({
+            {outputs.id_ref, inputs.iq_ref.read()}, {inputs.id.read(), inputs.iq.read()},
+            inputs.omega.read(), bus_voltage_,
+        });
+        outputs.vd = command.d;
+        outputs.vq = command.q;
+    }
+
+    PiInputs inputs;
+    PiOutputs outputs;
+
+private:
+    DigitalCurrentPi controller_;
+    double bus_voltage_;
+};
+
+}  // namespace drive_blocks
 
 }  // namespace pmsm

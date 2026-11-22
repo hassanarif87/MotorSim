@@ -25,6 +25,8 @@ cc_library(
     hdrs = ["continuous_pmsm.h"],
     deps = [
         ":plant",
+        "//:block_ports",
+        "//:configuration",
         "//:rk4",
         "//:simulation_executor",
     ],
@@ -33,43 +35,57 @@ cc_library(
 cc_library(
     name = "current_feedback",
     hdrs = ["current_feedback.h"],
-    deps = [":transforms"],
+    deps = [
+        ":transforms",
+        "//:block_ports",
+        "//:configuration",
+    ],
 )
 
 cc_library(
     name = "current_pi",
     hdrs = ["current_pi.h"],
-    deps = [":signals"],
+    deps = [
+        ":signals",
+        "//:block_ports",
+        "//:configuration",
+    ],
 )
 
 cc_library(
     name = "svpwm",
     hdrs = ["svpwm.h"],
-    deps = [":transforms"],
+    deps = [
+        ":transforms",
+        "//:block_ports",
+        "//:configuration",
+    ],
 )
 
 cc_library(
     name = "inverter",
     hdrs = ["inverter.h"],
-    deps = [":signals"],
+    deps = [
+        ":signals",
+        "//:block_ports",
+        "//:configuration",
+    ],
 )
 
 cc_library(
     name = "speed_control",
     hdrs = ["speed_control.h"],
+    deps = [
+        "//:block_ports",
+        "//:configuration",
+    ],
 )
 
 cc_library(
-    name = "drive_blocks",
-    hdrs = ["drive_blocks.h"],
+    name = "constant_current",
+    hdrs = ["constant_current.h"],
     deps = [
-        ":continuous_pmsm",
-        ":current_feedback",
-        ":current_pi",
-        ":inverter",
-        ":speed_control",
-        ":svpwm",
-        "//:block_graph",
+        "//:block_ports",
         "//:configuration",
     ],
 )

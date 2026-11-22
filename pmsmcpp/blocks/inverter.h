@@ -5,6 +5,9 @@
 
 #include "blocks/signals.h"
 
+#include "block_ports.h"
+#include "configuration.h"
+
 namespace pmsm {
 
 inline PhaseVoltage ideal_inverter(DutyCycles duty, double bus_voltage) {
@@ -14,5 +17,37 @@ inline PhaseVoltage ideal_inverter(DutyCycles duty, double bus_voltage) {
     const Eigen::Vector3d pole = bus_voltage * duty.abc.cwiseMax(0.0).cwiseMin(1.0);
     return {pole.array() - pole.mean()};
 }
+
+namespace drive_blocks {
+
+/// Normalized phase duty commands consumed by the inverter.
+struct DutyInputs { InputPort<Duty> duty_a, duty_b, duty_c; };
+BOOST_DESCRIBE_STRUCT(DutyInputs, (), (duty_a, duty_b, duty_c))
+
+/// Motor-neutral phase voltages published by the averaged inverter, in volts.
+struct PhaseVoltageOutputs { Voltage va, vb, vc; };
+BOOST_DESCRIBE_STRUCT(PhaseVoltageOutputs, (), (va, vb, vc))
+
+using config_detail::bounded_number;
+
+class Inverter {
+public:
+    explicit Inverter(const BlockSpec& spec)
+        : bus_voltage_(bounded_number(spec.parameters, "bus_voltage_v", false)) {}
+
+    void tick() {
+        const auto voltage = ideal_inverter(
+            {{inputs.duty_a.read(), inputs.duty_b.read(), inputs.duty_c.read()}}, bus_voltage_);
+        outputs = {voltage.abc[0], voltage.abc[1], voltage.abc[2]};
+    }
+
+    DutyInputs inputs;
+    PhaseVoltageOutputs outputs;
+
+private:
+    double bus_voltage_;
+};
+
+}  // namespace drive_blocks
 
 }  // namespace pmsm

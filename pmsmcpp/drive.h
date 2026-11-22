@@ -1,13 +1,14 @@
 #pragma once
 
 #include <algorithm>
-#include <iterator>
+#include <concepts>
 #include <memory>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
 
-#include "blocks/drive_blocks.h"
+#include "block_graph.h"
+#include "configuration.h"
 
 namespace pmsm {
 
@@ -31,12 +32,11 @@ public:
             }
 
             try {
-                const auto factory = std::find_if(std::begin(factories_), std::end(factories_),
-                    [&](const Factory& entry) { return entry.type == spec.type; });
-                if (factory == std::end(factories_)) {
+                const auto factory = find_factory(spec.type);
+                if (!factory) {
                     throw std::invalid_argument("Unknown block type: " + spec.type);
                 }
-                factory->create(*this, graph, spec, has_continuous);
+                factory(*this, graph, spec, has_continuous);
             } catch (const std::exception& error) {
                 throw std::invalid_argument("Block " + spec.name + ": " + error.what());
             }
@@ -66,50 +66,40 @@ public:
     SimulationExecutor& executor() { return executor_; }
 
 private:
-    enum class Mode { continuous, periodic, constant };
-
-    template <typename Block, Mode mode>
+    template <typename Block>
     static void add(Drive& drive, BlockGraph& graph,
                     const BlockSpec& spec, bool& has_continuous) {
-        if (spec.period.has_value() != (mode == Mode::periodic)) {
-            throw std::invalid_argument(mode == Mode::periodic
+        constexpr bool periodic = requires(Block& block) {
+            { block.tick() } -> std::same_as<void>;
+        };
+        constexpr bool continuous = requires(Block& block, SimulationExecutor::Duration dt) {
+            { block.advance(dt) } -> std::same_as<void>;
+        };
+        static_assert(!(periodic && continuous), "A block must choose tick() or advance(dt)");
+
+        if (spec.period.has_value() != periodic) {
+            throw std::invalid_argument(periodic
                 ? "A periodic block requires rate_hz" : "This block has no digital clock");
         }
-        if (mode == Mode::continuous && has_continuous) {
+        if (continuous && has_continuous) {
             throw std::invalid_argument("Exactly one continuous block is supported");
         }
 
         auto block = std::make_shared<Block>(spec);
         graph.add(spec.name, block->inputs, block->outputs);
         drive.blocks_.push_back(block);
-        if constexpr (mode == Mode::continuous) {
+        if constexpr (continuous) {
             drive.executor_.register_continuous(
                 SimulationExecutor::AdvanceCallback::bind<&Block::advance>(*block));
             has_continuous = true;
-        } else if constexpr (mode == Mode::periodic) {
+        } else if constexpr (periodic) {
             drive.executor_.register_update(*spec.period, spec.priority,
                 SimulationExecutor::UpdateCallback::bind<&Block::tick>(*block));
         }
     }
 
-    struct Factory {
-        std::string_view type;
-        void (*create)(Drive&, BlockGraph&, const BlockSpec&, bool&);
-    };
-
-#define PMSM_BLOCK_TYPES(X) \
-    X("pmsm", Motor, continuous) \
-    X("speed_control", SpeedController, periodic) \
-    X("current_feedback", Feedback, periodic) \
-    X("current_pi", CurrentController, periodic) \
-    X("svpwm", Pwm, periodic) \
-    X("inverter", Inverter, periodic) \
-    X("constant_current", ConstantCurrent, constant)
-
-#define PMSM_FACTORY(type, block, mode) {type, &add<drive_blocks::block, Mode::mode>},
-    inline static constexpr Factory factories_[]{PMSM_BLOCK_TYPES(PMSM_FACTORY)};
-#undef PMSM_FACTORY
-#undef PMSM_BLOCK_TYPES
+    using Factory = void (*)(Drive&, BlockGraph&, const BlockSpec&, bool&);
+    static Factory find_factory(std::string_view type);
 
     SimulationExecutor executor_;
     std::vector<std::shared_ptr<void>> blocks_;
