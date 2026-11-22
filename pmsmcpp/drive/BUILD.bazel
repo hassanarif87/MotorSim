@@ -14,6 +14,7 @@ cc_library(
         "//blocks:current_feedback",
         "//blocks:current_pi",
         "//blocks:inverter",
+        "//blocks:simplefoc",
         "//blocks:speed_control",
         "//blocks:svpwm",
         "//graph:block_graph",

@@ -92,3 +92,12 @@ cc_library(
         "//:configuration",
     ],
 )
+
+cc_library(
+    name = "simplefoc",
+    hdrs = ["simplefoc.h"],
+    deps = [
+        "//graph:block_ports",
+        "//:configuration",
+    ],
+)

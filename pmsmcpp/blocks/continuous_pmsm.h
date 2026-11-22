@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 
 #include "graph/block_ports.h"
 #include "blocks/transforms.h"
@@ -18,6 +19,7 @@ struct MotorParameters {
     NonnegativeReal torque_constant_nm_per_a{0.1};
     PositiveReal inertia_kg_m2{0.03};
     NonnegativeReal viscous_friction_nm_per_rad_s{0.0};
+    std::optional<bool> lock_rotor;
 };
 
 struct MotorState {
@@ -61,6 +63,9 @@ public:
             (voltage.x() - p.resistance_ohm.get() * state.id + omega_e * p.inductance_h.get() * state.iq)
             / p.inductance_h.get();
         const double torque = 1.5 * p.torque_constant_nm_per_a.get() * state.iq;
+        if (p.lock_rotor.value_or(false)) {
+            return {iq_dot, id_dot, 0.0, 0.0};
+        }
         const double omega_dot =
             (torque - input.load_torque - p.viscous_friction_nm_per_rad_s.get() * state.omega) / p.inertia_kg_m2.get();
         return {iq_dot, id_dot, omega_dot, state.omega};
@@ -92,6 +97,9 @@ public:
 
     explicit ContinuousPmsm(const MotorParameters& parameters, MotorState initial = {})
         : plant_(parameters), state_(initial) {
+        if (parameters.lock_rotor.value_or(false)) {
+            state_.omega = 0.0;
+        }
         publish();
     }
 

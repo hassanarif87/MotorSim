@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 #include <stdexcept>
 
 #include "blocks/transforms.h"
@@ -35,6 +36,7 @@ class Pwm {
     struct Parameters {
         PositiveInt pole_pairs;
         PositiveReal bus_voltage_v;
+        std::optional<bool> predict_midpoint_angle;
     };
 
 public:
@@ -56,7 +58,8 @@ public:
 private:
     Pwm(const Parameters& p, double period_s)
         : pole_pairs_(p.pole_pairs.get()),
-          bus_voltage_(p.bus_voltage_v.get()), half_period_s_(period_s / 2.0) {}
+          bus_voltage_(p.bus_voltage_v.get()),
+          half_period_s_(p.predict_midpoint_angle.value_or(true) ? period_s / 2.0 : 0.0) {}
 
     int pole_pairs_;
     double bus_voltage_;

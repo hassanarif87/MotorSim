@@ -143,3 +143,54 @@ events. The speed loop ticks every 1 ms, feedback and current PI every 50 µs,
 SVPWM and inverter every 50 µs, and logging every 100 µs. The PI advances its
 integrators once per tick. The inverter holds its phase voltages between
 updates. The CSV records both endpoints and the latest published port values.
+
+## Tune SimpleFOC current and velocity loops
+
+From `pmsmcpp`, build the simulator and run the
+[SimpleFOC profile](simplefoc_config.json) for a 100 rad/s velocity step.
+The output includes current and velocity references, raw and filtered
+feedback, dq voltage commands, and phase duties.
+
+```sh
+bazel build //:pmsm_sim
+bazel run //:pmsm_sim -- /tmp/simplefoc.csv simplefoc_config.json
+python3 tune_simplefoc.py current P 0.15 0.25 0.4 --target 1
+python3 tune_simplefoc.py velocity P 0.04 0.08 0.16 --target 100
+```
+
+The current sweep locks the simulated shaft at rest to isolate the
+electrical response. It commands a fixed q-axis current in amperes
+with a zero d-axis reference and applies the candidate setting to both
+current PIDs. Copy the chosen current settings into the profile before sweeping
+the velocity PID. Both commands accept `P`, `I`, `D`, or `output_ramp`
+and write one CSV row per candidate to standard output. A blank settling
+time means the measured response did not stay within 2% of the target
+through the end of the run. The tail error averages the absolute error
+over the last 10% of the run. Peak current is the largest sampled
+absolute value across the two dq axes. Use `--config` to sweep a copy of
+the profile with different motor data, load, or duration.
+
+The profile uses a fixed-rate model of SimpleFOC v2.3.5 with
+`TorqueControlType::foc_current`, `MotionControlType::velocity`, and
+centered `FOCModulationType::SpaceVectorPWM`. FOC runs at 20 kHz and
+velocity at 1 kHz. When their ticks coincide, FOC uses the previous
+velocity command, matching a firmware loop that calls `loopFOC()` before
+`move()`. Set the rates to match your firmware. This simulation uses ideal
+angle, speed, and current feedback and an averaged inverter. It models the
+controller equations with fixed time steps and does not execute Arduino
+firmware or simulate ADC and PWM timing.
+
+The JSON `PID_current_d`, `PID_current_q`, and `PID_velocity` values
+map to the corresponding `motor.PID_*` settings. Each `LPF_*_Tf` is in
+seconds and maps to `motor.LPF_*.Tf`. The current-loop `voltage_limit`
+maps to `motor.voltage_limit` in volts, and the velocity-loop
+`current_limit` maps to `motor.current_limit` in amperes. The profile
+assumes the driver's voltage limit equals the DC bus voltage. Treat
+the example gains as simulation starting points and validate candidates
+on the target hardware at conservative limits.
+
+See the upstream
+[BLDC controller](https://github.com/simplefoc/Arduino-FOC/blob/v2.3.5/src/BLDCMotor.cpp),
+[PID](https://github.com/simplefoc/Arduino-FOC/blob/v2.3.5/src/common/pid.cpp),
+and [filter](https://github.com/simplefoc/Arduino-FOC/blob/v2.3.5/src/common/lowpass_filter.cpp)
+implementations.

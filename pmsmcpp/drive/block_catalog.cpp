@@ -6,6 +6,7 @@
 #include "blocks/current_feedback.h"
 #include "blocks/current_pi.h"
 #include "blocks/inverter.h"
+#include "blocks/simplefoc.h"
 #include "blocks/speed_control.h"
 #include "blocks/svpwm.h"
 
@@ -17,6 +18,8 @@ Drive::Factory Drive::find_factory(std::string_view type) {
     X("speed_control", SpeedController) \
     X("current_feedback", Feedback) \
     X("current_pi", CurrentController) \
+    X("simplefoc_velocity", SimpleFocVelocity) \
+    X("simplefoc_current", SimpleFocCurrent) \
     X("svpwm", Pwm) \
     X("inverter", Inverter) \
     X("constant_current", ConstantCurrent) \
