@@ -10,13 +10,14 @@ namespace drive_blocks {
 /// Fixed current published by the source, in amperes.
 struct ConstantCurrentOutputs { Current value; };
 
-using config_detail::number;
+class ConstantCurrent {
+    struct Parameters { FiniteReal value_a; };
 
-struct ConstantCurrent {
+public:
     static constexpr bool is_constant = true;
 
     explicit ConstantCurrent(const BlockSpec& spec)
-        : outputs{number(spec.parameters, "value_a")} {}
+        : outputs{spec.read_parameters<Parameters>().value_a.get()} {}
 
     NoInputs inputs;
     ConstantCurrentOutputs outputs;

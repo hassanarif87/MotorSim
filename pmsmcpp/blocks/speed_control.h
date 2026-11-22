@@ -30,18 +30,18 @@ struct SpeedInputs { InputPort<Speed> omega; };
 /// Requested q-axis current from the speed controller, in amperes.
 struct SpeedOutputs { Current iq_ref; };
 
-using config_detail::bounded_number;
-using config_detail::number;
-
 class SpeedController {
+    struct Parameters {
+        NonnegativeReal gain_a_per_rad_s;
+        NonnegativeReal max_current_a;
+        std::optional<FiniteReal> reference_rad_s;
+        std::optional<PositiveReal> bus_voltage_v;
+        std::optional<PositiveReal> back_emf_v_per_rad_s;
+    };
+
 public:
     explicit SpeedController(const BlockSpec& spec)
-        : controller_(bounded_number(spec.parameters, "gain_a_per_rad_s", true),
-                      bounded_number(spec.parameters, "max_current_a", true)),
-          reference_(spec.parameters.at("reference_rad_s").is_null()
-              ? bounded_number(spec.parameters, "bus_voltage_v", false) /
-                (std::sqrt(3.0) * bounded_number(spec.parameters, "back_emf_v_per_rad_s", false))
-              : number(spec.parameters, "reference_rad_s")) {}
+        : SpeedController(spec.read_parameters<Parameters>()) {}
 
     void tick() { outputs.iq_ref = controller_.output(reference_, inputs.omega.read()); }
 
@@ -49,6 +49,20 @@ public:
     SpeedOutputs outputs;
 
 private:
+    explicit SpeedController(const Parameters& p)
+        : controller_(p.gain_a_per_rad_s.get(), p.max_current_a.get()),
+          reference_(speed_reference(p)) {}
+
+    static double speed_reference(const Parameters& p) {
+        if (p.reference_rad_s) {
+            return p.reference_rad_s->get();
+        }
+        if (!p.bus_voltage_v || !p.back_emf_v_per_rad_s) {
+            throw std::invalid_argument("Automatic speed reference requires bus_voltage_v and back_emf_v_per_rad_s");
+        }
+        return p.bus_voltage_v->get() / (std::sqrt(3.0) * p.back_emf_v_per_rad_s->get());
+    }
+
     SpeedControl controller_;
     double reference_;
 };

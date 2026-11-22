@@ -12,12 +12,14 @@
 namespace pmsm {
 
 struct CurrentPiParameters {
-    double kp;
-    double ki;
-    double kaw;
-    double inductance;
-    int pole_pairs;
-    double back_emf_constant;
+    NonnegativeReal kp;
+    NonnegativeReal ki;
+    NonnegativeReal kaw;
+    PositiveReal inductance_h{0.03};
+    PositiveInt pole_pairs{1};
+    PositiveReal back_emf_v_per_rad_s{0.1};
+    PositiveReal bus_voltage_v{24.0};
+    FiniteReal id_reference_a{0.0};
 };
 
 struct CurrentPiInput {
@@ -41,13 +43,13 @@ public:
         const auto& p = parameters_;
         const Eigen::Vector2d error(input.reference.d - input.measured.d,
                                     input.reference.q - input.measured.q);
-        const double coupling = p.pole_pairs * input.omega * p.inductance;
+        const double coupling = p.pole_pairs.get() * input.omega * p.inductance_h.get();
         const Eigen::Vector2d feedforward(-coupling * input.measured.q,
-            coupling * input.measured.d + p.back_emf_constant * input.omega);
-        const Eigen::Vector2d raw = p.kp * error + integral + feedforward;
+            coupling * input.measured.d + p.back_emf_v_per_rad_s.get() * input.omega);
+        const Eigen::Vector2d raw = p.kp.get() * error + integral + feedforward;
         const double limit = input.bus_voltage / std::sqrt(3.0);
         const Eigen::Vector2d voltage = raw * std::min(1.0, limit / std::max(raw.norm(), 1e-12));
-        return {{voltage.x(), voltage.y()}, p.ki * error + p.kaw * (voltage - raw)};
+        return {{voltage.x(), voltage.y()}, p.ki.get() * error + p.kaw.get() * (voltage - raw)};
     }
 
 private:
@@ -82,23 +84,11 @@ struct PiInputs {
 /// Voltage-limited dq commands held between current-loop ticks, in volts.
 struct PiOutputs { Voltage vd, vq; Current id_ref; };
 
-using config_detail::bounded_number;
-using config_detail::number;
-using config_detail::positive_integer;
-
 class CurrentController {
 public:
     explicit CurrentController(const BlockSpec& spec)
-        : controller_(CurrentPi({
-              bounded_number(spec.parameters, "kp", true), bounded_number(spec.parameters, "ki", true),
-              bounded_number(spec.parameters, "kaw", true),
-              bounded_number(spec.parameters, "inductance_h", false),
-              positive_integer(spec.parameters, "pole_pairs"),
-              bounded_number(spec.parameters, "back_emf_v_per_rad_s", false),
-          }), std::chrono::duration<double>(spec.period.value()).count()),
-          bus_voltage_(bounded_number(spec.parameters, "bus_voltage_v", false)) {
-        outputs.id_ref = number(spec.parameters, "id_reference_a");
-    }
+        : CurrentController(spec.read_parameters<CurrentPiParameters>(),
+                            std::chrono::duration<double>(spec.period().value()).count()) {}
 
     void tick() {
         const auto command = controller_.tick({
@@ -113,6 +103,12 @@ public:
     PiOutputs outputs;
 
 private:
+    CurrentController(const CurrentPiParameters& parameters, double period_s)
+        : controller_(CurrentPi(parameters), period_s),
+          bus_voltage_(parameters.bus_voltage_v.get()) {
+        outputs.id_ref = parameters.id_reference_a.get();
+    }
+
     DigitalCurrentPi controller_;
     double bus_voltage_;
 };

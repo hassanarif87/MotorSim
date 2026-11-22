@@ -1,6 +1,7 @@
 # PMSM C++ simulation
 
-The simulator builds with GCC 16.2 using `-std=c++26 -freflection`. Bazel selects `gcc-16`
+The simulator builds with GCC 16.2 in C++26 mode. The graph targets use
+`-freflection`, and Bazel selects `gcc-16`
 from `PATH`. From the repository root, run the following with Bazelisk or
 Bazel 8.4.0.
 
@@ -31,6 +32,10 @@ This example adds a periodic current gain that can sit between the speed
 controller and current PI. Save it as `blocks/current_gain.h`. The factory expects a constructor taking `const BlockSpec&` and public
 members named `inputs` and `outputs`. The graph builder discovers their public
 fields through C++26 reflection. Each field name is its JSON port name.
+For parameters, reflect-cpp maps JSON directly to the struct and validates
+fields declared with types such as `PositiveReal` and
+`FiniteReal`. Reuse the block's parameter struct when it
+already represents the JSON fields.
 
 ```cpp
 #pragma once
@@ -49,9 +54,11 @@ struct CurrentGainOutputs {
 };
 
 class CurrentGain {
+    struct Parameters { FiniteReal gain; };
+
 public:
     explicit CurrentGain(const BlockSpec& spec)
-        : gain_(config_detail::number(spec.parameters, "gain")) {}
+        : gain_(spec.read_parameters<Parameters>().gain.get()) {}
 
     void tick() {
         outputs.current = gain_ * inputs.current.read();

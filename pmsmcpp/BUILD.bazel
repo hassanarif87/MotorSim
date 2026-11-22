@@ -20,6 +20,7 @@ cc_library(
 
 cc_library(
     name = "configuration",
+    srcs = ["configuration.cpp"],
     hdrs = ["configuration.h"],
     visibility = [
         "//blocks:__pkg__",
@@ -28,7 +29,7 @@ cc_library(
     deps = [
         ":simulation_executor",
         "//graph:connections",
-        "@nlohmann_json//:json",
+        "@reflect-cpp",
     ],
 )
 
@@ -36,6 +37,7 @@ cc_library(
     name = "csv_logger",
     srcs = ["csv_logger.cpp"],
     hdrs = ["csv_logger.h"],
+    copts = ["-freflection"],
     deps = [
         ":simulation_executor",
         "//drive",
@@ -47,6 +49,7 @@ cc_binary(
     name = "pmsm_sim",
     srcs = ["main.cpp"],
     data = ["pmsm_config.json"],
+    copts = ["-freflection"],
     deps = [
         ":configuration",
         ":csv_logger",

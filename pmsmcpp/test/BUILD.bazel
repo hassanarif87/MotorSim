@@ -26,5 +26,6 @@ cc_test(
     name = "block_graph_test",
     size = "small",
     srcs = ["block_graph_test.cpp"],
+    copts = ["-freflection"],
     deps = ["//graph:block_graph"],
 )

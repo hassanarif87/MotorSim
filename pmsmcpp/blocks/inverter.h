@@ -26,12 +26,12 @@ struct DutyInputs { InputPort<Duty> duty_a, duty_b, duty_c; };
 /// Motor-neutral phase voltages published by the averaged inverter, in volts.
 struct PhaseVoltageOutputs { Voltage va, vb, vc; };
 
-using config_detail::bounded_number;
-
 class Inverter {
+    struct Parameters { PositiveReal bus_voltage_v; };
+
 public:
     explicit Inverter(const BlockSpec& spec)
-        : bus_voltage_(bounded_number(spec.parameters, "bus_voltage_v", false)) {}
+        : bus_voltage_(spec.read_parameters<Parameters>().bus_voltage_v.get()) {}
 
     void tick() {
         const auto voltage = ideal_inverter(

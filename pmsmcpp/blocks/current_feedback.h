@@ -23,12 +23,12 @@ struct FeedbackInputs {
 /// Sampled d- and q-axis currents, in amperes.
 struct FeedbackOutputs { Current id, iq; };
 
-using config_detail::positive_integer;
-
 class Feedback {
+    struct Parameters { PositiveInt pole_pairs; };
+
 public:
     explicit Feedback(const BlockSpec& spec)
-        : pole_pairs_(positive_integer(spec.parameters, "pole_pairs")) {}
+        : pole_pairs_(spec.read_parameters<Parameters>().pole_pairs.get()) {}
 
     void tick() {
         const auto measured = current_feedback(

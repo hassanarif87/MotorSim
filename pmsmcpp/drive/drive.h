@@ -16,7 +16,7 @@ class Drive {
 public:
     explicit Drive(const Configuration& config) : executor_(config.simulation.integration_step()) {
         const auto periodic_count = std::count_if(config.blocks.begin(), config.blocks.end(),
-            [](const BlockSpec& spec) { return spec.period.has_value(); });
+            [](const BlockSpec& spec) { return spec.period().has_value(); });
         if (static_cast<std::size_t>(periodic_count) >= SimulationExecutor::max_updates) {
             throw std::invalid_argument("Too many periodic blocks with one executor slot reserved for CSV");
         }
@@ -74,7 +74,8 @@ private:
         static_assert(periodic + continuous + constant == 1,
             "A block must implement void tick(), void advance(Duration), or declare is_constant");
 
-        if (spec.period.has_value() != periodic) {
+        const auto period = spec.period();
+        if (period.has_value() != periodic) {
             throw std::invalid_argument(periodic
                 ? "A periodic block requires rate_hz" : "This block has no digital clock");
         }
@@ -88,7 +89,7 @@ private:
         if constexpr (continuous) {
             drive.executor_.register_block(*block);
         } else if constexpr (periodic) {
-            drive.executor_.register_block(*block, *spec.period, spec.priority);
+            drive.executor_.register_block(*block, *period, spec.tick_priority());
         }
     }
 

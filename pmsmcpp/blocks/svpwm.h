@@ -29,14 +29,14 @@ struct PwmInputs {
 /// Normalized phase duty commands published by SVPWM.
 struct DutyOutputs { Duty duty_a, duty_b, duty_c; };
 
-using config_detail::bounded_number;
-using config_detail::positive_integer;
-
 class Pwm {
+    struct Parameters {
+        PositiveInt pole_pairs;
+        PositiveReal bus_voltage_v;
+    };
+
 public:
-    explicit Pwm(const BlockSpec& spec)
-        : pole_pairs_(positive_integer(spec.parameters, "pole_pairs")),
-          bus_voltage_(bounded_number(spec.parameters, "bus_voltage_v", false)) {}
+    explicit Pwm(const BlockSpec& spec) : Pwm(spec.read_parameters<Parameters>()) {}
 
     void tick() {
         const auto duty = svpwm({inputs.vd.read(), inputs.vq.read()},
@@ -48,6 +48,10 @@ public:
     DutyOutputs outputs;
 
 private:
+    explicit Pwm(const Parameters& p)
+        : pole_pairs_(p.pole_pairs.get()),
+          bus_voltage_(p.bus_voltage_v.get()) {}
+
     int pole_pairs_;
     double bus_voltage_;
 };

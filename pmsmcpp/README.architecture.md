@@ -11,7 +11,7 @@ with `bazel test //test/...`.
 | File | Responsibility |
 | --- | --- |
 | [`main.cpp`](main.cpp) | Loads the config, constructs the drive, and registers the CSV logger. |
-| [`configuration.h`](configuration.h) | Reads simulation settings and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
+| [`configuration.h`](configuration.h) | Uses reflect-cpp to load JSON into typed simulation and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
 | [`drive/drive.h`](drive/drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
 | [`drive/block_catalog.cpp`](drive/block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
 | [`graph/block_ports.h`](graph/block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
@@ -19,6 +19,7 @@ with `bazel test //test/...`.
 | [`blocks/`](blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
 | [`simulation_executor.h`](simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
 
+Each factory reads its block's parameter object into a local C++ struct.
 The graph's name maps exist during drive construction. Once validation
 succeeds, each input holds a typed pointer to its source value. CSV readers
 also retain the addresses they resolve at startup. Blocks publish values into
