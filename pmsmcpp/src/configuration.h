@@ -55,13 +55,8 @@ using Priority = rfl::Validator<int, rfl::Minimum<0>,
 
 namespace config_value {
 
-inline std::optional<SimulationExecutor::Duration> tick_period(
-    const std::optional<RateHz>& rate, const std::optional<PositiveInt>& period) {
-    using Duration = SimulationExecutor::Duration;
-    if (rate) {
-        return Duration(nanoseconds_per_second / rate->get());
-    }
-    return period ? std::optional{Duration(period->get())} : std::nullopt;
+inline SimulationExecutor::Duration period_from_rate(RateHz rate) {
+    return SimulationExecutor::Duration(nanoseconds_per_second / rate.get());
 }
 
 }  // namespace config_value
@@ -71,11 +66,13 @@ struct BlockSpec {
     std::string type;
     rfl::DefaultVal<rfl::Generic::Object> parameters;
     std::optional<RateHz> rate_hz;
-    std::optional<PositiveInt> period_ns;
     std::optional<Priority> priority;
 
     std::optional<SimulationExecutor::Duration> period() const {
-        return config_value::tick_period(rate_hz, period_ns);
+        if (rate_hz) {
+            return config_value::period_from_rate(*rate_hz);
+        }
+        return std::nullopt;
     }
 
     int tick_priority() const { return priority ? priority->get() : 0; }
@@ -87,24 +84,18 @@ struct BlockSpec {
 };
 
 struct SimulationConfig {
-    std::optional<RateHz> tick_rate_hz;
-    std::optional<PositiveReal> duration_s;
-    std::optional<PositiveReal> step_s;
-    std::optional<PositiveInt> steps;
-    std::optional<PositiveInt> log_every_steps;
-    std::optional<RateHz> log_rate_hz;
-    std::optional<PositiveInt> log_period_ns;
+    SimulationConfig(RateHz tick_rate_hz, PositiveReal duration_s, RateHz log_rate_hz);
 
-    SimulationExecutor::Duration tick_interval() const;
-    SimulationExecutor::Duration duration() const;
-    SimulationExecutor::Duration logging_period() const;
+    SimulationExecutor::Duration tick_interval;
+    SimulationExecutor::Duration duration;
+    SimulationExecutor::Duration logging_period;
 };
 
 struct Configuration {
     SimulationConfig simulation;
     std::vector<BlockSpec> blocks;
-    std::optional<Connections> connections;
-    std::optional<Connections> log_columns;
+    Connections connections;
+    Connections log_columns;
 };
 
 Configuration load_configuration(const std::filesystem::path& path);

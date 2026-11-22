@@ -14,9 +14,9 @@ namespace pmsm {
 /// Owns block instances and schedules them after resolving the configured model.
 class Drive {
 public:
-    explicit Drive(const Configuration& config) : executor_(config.simulation.tick_interval()) {
+    explicit Drive(const Configuration& config) : executor_(config.simulation.tick_interval) {
         const auto periodic_count = std::count_if(config.blocks.begin(), config.blocks.end(),
-            [](const BlockSpec& spec) { return spec.period().has_value(); });
+            [](const BlockSpec& spec) { return spec.rate_hz.has_value(); });
         if (static_cast<std::size_t>(periodic_count) >= SimulationExecutor::max_periodic_blocks) {
             throw std::invalid_argument("Too many periodic blocks with one executor slot reserved for CSV");
         }
@@ -42,9 +42,9 @@ public:
         if (!executor_.has_continuous_block()) {
             throw std::invalid_argument("Exactly one continuous block is required");
         }
-        graph.connect(config.connections.value());
+        graph.connect(config.connections);
         std::unordered_set<std::string> headers{"time_s"};
-        for (const auto& [header, source] : config.log_columns.value()) {
+        for (const auto& [header, source] : config.log_columns) {
             if (header.empty() || !headers.insert(header).second) {
                 throw std::invalid_argument("Invalid or duplicate CSV column: " + header);
             }

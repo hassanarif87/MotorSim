@@ -20,9 +20,9 @@ an optional `priority` (default 0). Lower priorities run first at coincident
 ticks, with JSON order breaking ties. Frequencies must be positive integers
 that divide 1,000,000,000 exactly. Each block and CSV rate must also divide
 `tick_rate_hz` exactly. For example, 20,000 Hz runs every 50 ticks at a
-base frequency of 1,000,000 Hz. Older configs can set the tick interval with
-`step_s` and the duration with `steps`. Their block and logging periods must
-span whole simulation ticks. The executor supports one continuous block
+base frequency of 1,000,000 Hz. The three simulation fields are required.
+`duration_s` must represent a positive whole number of nanoseconds.
+The executor supports one continuous block
 and up to 15 periodic blocks, reserving one slot for CSV logging.
 
 A connection names ports as `instance.port`. For example,
@@ -32,9 +32,9 @@ output can feed several inputs. A block reads the last value its source
 published, so set priorities to put a producer before its consumer when
 both tick at the same time.
 
-The `blocks` array is required. Omitted `connections` or `log_columns`
-use the workspace defaults. When you change the topology, supply the
-complete connection list. Log columns can refer to numeric inputs or
+The `blocks`, `connections`, and `log_columns` arrays are required.
+When you change the topology, supply the complete connection list.
+Log columns can refer to numeric inputs or
 outputs. The logger adds `time_s` automatically.
 
 ### Set the motor load torque

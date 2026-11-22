@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -18,8 +19,8 @@ using Duration = Executor::Duration;
 
 void simulate(const std::filesystem::path& path, const pmsm::Configuration& config) {
     const auto& sim = config.simulation;
-    const Duration log_period = sim.logging_period();
-    const auto end = sim.duration();
+    const Duration log_period = sim.logging_period;
+    const auto end = sim.duration;
     pmsm::Drive drive(config);
     auto& executor = drive.executor();
 
@@ -54,21 +55,9 @@ int main(int argc, char** argv) {
     const std::filesystem::path base = workspace ? workspace : ".";
     const auto config_path = base / argv[1];
     const auto output_path = base / (argc == 3 ? argv[2] : "pmsm_results.csv");
-    pmsm::Configuration config;
+    std::optional<pmsm::Configuration> config;
     try {
-        config = pmsm::load_configuration(config_path);
-        if (!config.connections || !config.log_columns) {
-            const auto defaults = pmsm::load_configuration(base / "pmsm_config.json");
-            if (!config.connections) {
-                config.connections = defaults.connections;
-            }
-            if (!config.log_columns) {
-                config.log_columns = defaults.log_columns;
-            }
-            if (!config.connections || !config.log_columns) {
-                throw std::invalid_argument("The supplied or default configuration must define connections and log_columns");
-            }
-        }
+        config.emplace(pmsm::load_configuration(config_path));
     } catch (const std::exception& error) {
         std::cerr << "Invalid configuration " << config_path.string() << ": " << error.what() << '\n';
         return 1;
@@ -79,7 +68,7 @@ int main(int argc, char** argv) {
             std::filesystem::equivalent(output_path, config_path)) {
             throw std::runtime_error("Output path refers to the configuration file");
         }
-        simulate(output_path, config);
+        simulate(output_path, *config);
     } catch (const std::exception& error) {
         std::cerr << "Could not save " << output_path.string() << ": " << error.what() << '\n';
         return 1;
