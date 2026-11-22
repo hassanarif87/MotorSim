@@ -24,7 +24,9 @@ also retain the addresses they resolve at startup. Blocks publish values into
 their own output storage, so a consumer sees the latest published value when
 it reads its input. Each block owns its internal state.
 
-The executor stores callbacks in a fixed-capacity array. A delegate holds an
+The factory uses executor concepts to identify a block's `tick()` or
+`advance(dt)` method and register it automatically. The executor stores
+periodic callbacks in a fixed-capacity array. A delegate holds an
 object pointer and a dispatch function pointer. Binding and calling these
 delegates requires no heap allocation. The drive owns the block instances
 for the duration of the run, and the logger stays alive through the run.

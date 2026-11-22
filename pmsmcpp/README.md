@@ -85,10 +85,13 @@ Add `//blocks:current_gain` to the `drive` target's dependencies in
 
 In [`block_catalog.cpp`](block_catalog.cpp), include `blocks/current_gain.h`
 and append `X("current_gain", CurrentGain)` to `PMSM_BLOCK_TYPES`. Add a
-trailing backslash to the previous entry. The factory recognizes `tick()` as
-a periodic callback and `advance(SimulationExecutor::Duration)` as a
-continuous callback. A block with neither is treated as a constant source
-and can publish its outputs in its constructor.
+trailing backslash to the previous entry. The factory checks the block
+contract at compile time and registers the callback automatically. Use
+`void tick()` for a periodic block or
+`void advance(SimulationExecutor::Duration)` for a continuous block.
+A constant source declares `static constexpr bool is_constant = true`
+and can publish its outputs in its constructor. Each block chooses one
+of these three forms.
 
 Start with a fresh copy of the default config and add this instance to
 `blocks`.

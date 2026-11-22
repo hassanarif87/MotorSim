@@ -13,6 +13,8 @@ struct ConstantCurrentOutputs { Current value; };
 using config_detail::number;
 
 struct ConstantCurrent {
+    static constexpr bool is_constant = true;
+
     explicit ConstantCurrent(const BlockSpec& spec)
         : outputs{number(spec.parameters, "value_a")} {}
 

@@ -82,8 +82,7 @@ void simulate(const std::filesystem::path& path, const pmsm::Configuration& conf
     }
     {
         CsvLogger logger(output, executor, drive.columns());
-        executor.register_update(log_period, std::numeric_limits<int>::max(),
-            Executor::UpdateCallback::bind<&CsvLogger::tick>(logger));
+        executor.register_block(logger, log_period, std::numeric_limits<int>::max());
 
         executor.run(end);
         if (end % log_period != Duration::zero()) {

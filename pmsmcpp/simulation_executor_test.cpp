@@ -47,14 +47,30 @@ struct Trace {
     }
 };
 
+struct CurrentTick {
+    Trace& trace;
+    void tick() { trace.current(); }
+};
+
+struct WrongSignatures {
+    void tick(int count = 0);
+    void advance(double seconds);
+};
+
+static_assert(pmsm::TickBlock<CurrentTick>);
+static_assert(pmsm::AdvanceBlock<Trace, Executor::Duration>);
+static_assert(!pmsm::TickBlock<WrongSignatures>);
+static_assert(!pmsm::AdvanceBlock<WrongSignatures, Executor::Duration>);
+
 }  // namespace
 
 int main() {
     Executor executor(4ns);
     Trace trace{executor, {}, {}, {}};
-    executor.register_continuous(Executor::AdvanceCallback::bind<&Trace::advance>(trace));
+    CurrentTick current{trace};
+    executor.register_block(trace);
     executor.register_update(7ns, 2, Executor::UpdateCallback::bind<&Trace::pwm>(trace));
-    executor.register_update(5ns, 1, Executor::UpdateCallback::bind<&Trace::current>(trace));
+    executor.register_block(current, 5ns, 1);
     executor.register_update(20ns, 0, Executor::UpdateCallback::bind<&Trace::speed>(trace));
     executor.run(12ns);
 

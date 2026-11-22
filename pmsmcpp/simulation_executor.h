@@ -9,6 +9,16 @@
 
 namespace pmsm {
 
+template <typename Block>
+concept TickBlock = requires {
+    static_cast<void (Block::*)()>(&Block::tick);
+};
+
+template <typename Block, typename Duration>
+concept AdvanceBlock = requires {
+    static_cast<void (Block::*)(Duration)>(&Block::advance);
+};
+
 template <typename Signature>
 class Delegate;
 
@@ -48,6 +58,24 @@ public:
             throw std::invalid_argument("Maximum integration step must be positive");
         }
     }
+
+    /// Bind a block's periodic callback directly from its member signature.
+    template <TickBlock Block>
+        requires (!AdvanceBlock<Block, Duration>)
+    void register_block(Block& block, Duration period, int priority) {
+        register_update(period, priority,
+            UpdateCallback::bind<static_cast<void (Block::*)()>(&Block::tick)>(block));
+    }
+
+    /// Bind a block's continuous callback directly from its member signature.
+    template <typename Block>
+        requires AdvanceBlock<Block, Duration> && (!TickBlock<Block>)
+    void register_block(Block& block) {
+        register_continuous(
+            AdvanceCallback::bind<static_cast<void (Block::*)(Duration)>(&Block::advance)>(block));
+    }
+
+    bool has_continuous_block() const { return static_cast<bool>(advance_); }
 
     void register_continuous(AdvanceCallback callback) {
         if (started_ || advance_ || !callback) {
