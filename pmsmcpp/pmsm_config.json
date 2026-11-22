@@ -12,20 +12,23 @@
     "kp": 0.15,
     "ki": 90.0,
     "kaw": 600.0,
-    "id_reference_a": 0.0
+    "id_reference_a": 0.0,
+    "rate_hz": 20000
   },
   "inverter": {
-    "bus_voltage_v": 24.0
+    "bus_voltage_v": 24.0,
+    "pwm_rate_hz": 20000
   },
   "speed_control": {
     "gain_a_per_rad_s": 0.1,
     "max_current_a": 3.0,
-    "reference_rad_s": null
+    "reference_rad_s": null,
+    "rate_hz": 1000
   },
   "simulation": {
     "load_torque_nm": 0.0,
     "step_s": 0.00001,
     "steps": 40000,
-    "log_every_steps": 10
+    "log_rate_hz": 10000
   }
 }

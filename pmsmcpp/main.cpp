@@ -11,14 +11,16 @@
 
 #include <csv.hpp>
 
+#include "blocks/continuous_pmsm.h"
 #include "blocks/speed_control.h"
 #include "configuration.h"
 #include "drive.h"
-#include "rk4.h"
+#include "simulation_executor.h"
 
 namespace {
 
-using State = pmsm::CurrentControlledPmsm::State;
+using Executor = pmsm::SimulationExecutor;
+using Duration = Executor::Duration;
 
 // Give the CSV library a round-trippable field representation.
 struct CsvNumber {
@@ -37,58 +39,85 @@ struct CsvNumber {
     }
 };
 
+class CsvLogger {
+public:
+    CsvLogger(std::ostream& output, const Executor& executor,
+              const pmsm::ContinuousPmsm& motor, const pmsm::CurrentControlledPmsm& drive)
+        : output_(output), writer_(output), executor_(executor), motor_(motor), drive_(drive) {
+        writer_ << columns_;
+    }
+
+    void tick() {
+        const auto& motor = motor_.output();
+        const auto& sample = drive_.signals();
+        const auto& currents = motor.current.abc;
+        const auto& duty = sample.duty.abc;
+        const auto& voltage = sample.voltage.abc;
+        const std::array<CsvNumber, columns_.size()> row{
+            std::chrono::duration<double>(executor_.now()).count(),
+            currents[0], currents[1], currents[2],
+            motor.omega, motor.theta, sample.measured.d, sample.measured.q,
+            sample.reference.d, sample.reference.q, sample.command.d, sample.command.q,
+            duty[0], duty[1], duty[2], voltage[0], voltage[1], voltage[2],
+        };
+        writer_ << row;
+        if (!output_) {
+            throw std::runtime_error("Could not write CSV row");
+        }
+    }
+
+private:
+    inline static const std::array<std::string, 18> columns_{
+        "time_s", "ia_a", "ib_a", "ic_a", "omega_rad_s", "theta_rad", "id_a", "iq_a",
+        "id_ref_a", "iq_ref_a", "vd_v", "vq_v", "duty_a", "duty_b", "duty_c", "va_v", "vb_v", "vc_v",
+    };
+    std::ostream& output_;
+    csv::CSVWriter<std::ostream, false> writer_;
+    const Executor& executor_;
+    const pmsm::ContinuousPmsm& motor_;
+    const pmsm::CurrentControlledPmsm& drive_;
+};
+
 void simulate(std::ostream& output, const pmsm::Configuration& config) {
     const auto& motor = config.motor;
     const auto& pi = config.current_pi;
     const auto& sim = config.simulation;
     const auto& speed_config = config.speed_control;
     const double bus_voltage = config.inverter.bus_voltage_v;
+    const auto max_step = sim.integration_step();
+    const Duration log_period = sim.log_period ? *sim.log_period
+                                               : max_step * sim.log_every_steps;
+    const Duration current_period = pi.period;
+    const auto end = max_step * sim.steps;
+
+    Executor executor(max_step);
+    pmsm::ContinuousPmsm continuous(pmsm::PmsmPlant(motor), sim.load_torque_nm);
     const pmsm::CurrentPi controller({
         pi.kp, pi.ki, pi.kaw, motor.inductance, motor.pole_pairs, motor.back_emf_constant,
     });
-    const pmsm::CurrentControlledPmsm drive(pmsm::PmsmPlant(motor), controller);
     const pmsm::SpeedControl speed(speed_config.gain_a_per_rad_s, speed_config.max_current_a);
     const double speed_reference = speed_config.reference_rad_s.value_or(
         bus_voltage / (std::sqrt(3.0) * motor.back_emf_constant));
+    pmsm::CurrentControlledPmsm drive(
+        continuous, controller, speed, bus_voltage, speed_reference, pi.id_reference_a,
+        current_period);
+    CsvLogger logger(output, executor, continuous, drive);
 
-    const auto input = [&](const State& state) -> pmsm::DriveInput {
-        return {{pi.id_reference_a, speed.output(speed_reference, state[2])},
-                sim.load_torque_nm, bus_voltage};
-    };
-    const auto derivative = [&](const State& state) {
-        return drive.evaluate(state, input(state)).derivative;
-    };
+    enum Priority { speed_tick, current_tick, pwm_tick, logging_tick };
+    executor.register_continuous(
+        Executor::AdvanceCallback::bind<&pmsm::ContinuousPmsm::advance>(continuous));
+    executor.register_update(speed_config.period, speed_tick,
+        Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_speed>(drive));
+    executor.register_update(current_period, current_tick,
+        Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_current>(drive));
+    executor.register_update(config.inverter.pwm_period, pwm_tick,
+        Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_pwm>(drive));
+    executor.register_update(log_period, logging_tick,
+        Executor::UpdateCallback::bind<&CsvLogger::tick>(logger));
 
-    csv::CSVWriter<std::ostream, false> writer(output);
-    const std::array<std::string, 18> columns{
-        "time_s", "ia_a", "ib_a", "ic_a", "omega_rad_s", "theta_rad", "id_a", "iq_a",
-        "id_ref_a", "iq_ref_a", "vd_v", "vq_v", "duty_a", "duty_b", "duty_c", "va_v", "vb_v", "vc_v",
-    };
-    writer << columns;
-
-    State state = State::Zero();
-    for (int step = 0; ; ++step) {
-        if (step % sim.log_every_steps == 0 || step == sim.steps) {
-            const auto command = input(state);
-            const auto sample = drive.evaluate(state, command);
-            const auto& currents = sample.motor.current.abc;
-            const auto& duty = sample.duty.abc;
-            const auto& voltage = sample.voltage.abc;
-            const std::array<CsvNumber, columns.size()> row{
-                step * sim.step_s, currents[0], currents[1], currents[2],
-                sample.motor.omega, sample.motor.theta, sample.measured.d, sample.measured.q,
-                command.reference.d, command.reference.q, sample.command.d, sample.command.q,
-                duty[0], duty[1], duty[2], voltage[0], voltage[1], voltage[2],
-            };
-            writer << row;
-            if (!output) {
-                throw std::runtime_error("Could not write CSV row");
-            }
-        }
-        if (step == sim.steps) {
-            break;
-        }
-        state = pmsm::rk4_step(state, sim.step_s, derivative);
+    executor.run(end);
+    if (end % log_period != Duration::zero()) {
+        logger.tick();
     }
 }
 

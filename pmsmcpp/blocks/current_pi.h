@@ -50,4 +50,21 @@ private:
     CurrentPiParameters parameters_;
 };
 
+class DigitalCurrentPi {
+public:
+    DigitalCurrentPi(CurrentPi controller, double sample_period_s)
+        : controller_(controller), sample_period_s_(sample_period_s) {}
+
+    DqVoltage tick(const CurrentPiInput& input) {
+        const auto evaluation = controller_.evaluate(integral_, input);
+        integral_ += sample_period_s_ * evaluation.integral_derivative;
+        return evaluation.voltage;
+    }
+
+private:
+    CurrentPi controller_;
+    double sample_period_s_;
+    Eigen::Vector2d integral_ = Eigen::Vector2d::Zero();
+};
+
 }  // namespace pmsm

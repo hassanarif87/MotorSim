@@ -1,13 +1,20 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 cc_library(
+    name = "simulation_executor",
+    hdrs = ["simulation_executor.h"],
+    visibility = ["//blocks:__pkg__"],
+)
+
+cc_library(
     name = "drive",
     hdrs = ["drive.h"],
     deps = [
+        "//blocks:continuous_pmsm",
         "//blocks:current_feedback",
         "//blocks:current_pi",
         "//blocks:inverter",
-        "//blocks:plant",
+        "//blocks:speed_control",
         "//blocks:svpwm",
     ],
 )
@@ -15,12 +22,14 @@ cc_library(
 cc_library(
     name = "rk4",
     hdrs = ["rk4.h"],
+    visibility = ["//blocks:__pkg__"],
 )
 
 cc_library(
     name = "configuration",
     hdrs = ["configuration.h"],
     deps = [
+        ":simulation_executor",
         "//blocks:plant",
         "@nlohmann_json//:json",
     ],
@@ -33,7 +42,8 @@ cc_binary(
     deps = [
         ":configuration",
         ":drive",
-        ":rk4",
+        "//blocks:continuous_pmsm",
+        ":simulation_executor",
         "//blocks:speed_control",
         "@csv-parser//:csv-parser",
     ],
@@ -47,5 +57,15 @@ cc_test(
         "//blocks:inverter",
         "//blocks:plant",
         "//blocks:svpwm",
+    ],
+)
+
+cc_test(
+    name = "simulation_executor_test",
+    size = "small",
+    srcs = ["simulation_executor_test.cpp"],
+    deps = [
+        ":rk4",
+        ":simulation_executor",
     ],
 )

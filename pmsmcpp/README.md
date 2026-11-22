@@ -23,15 +23,30 @@ the speed controller, load torque, and logging. Set `speed_control.reference_rad
 to a number for a fixed speed command, or use `null` to compute the ideal no-load
 speed from the configured bus voltage and back-EMF constant.
 
-The defaults reproduce the Python speed-control example. The motor starts at
-rest with zero external load torque. RK4 advances the motor and current PI
-integrators every 10 µs for 0.4 s. The CSV records samples every 100 µs,
-including both endpoints. The CSV includes
-mechanical speed and position, phase and dq currents, current references, voltage
-commands, phase voltages, and inverter duty cycles.
+The defaults use the Python speed-control example's motor parameters and initial
+conditions. Only the PMSM state is integrated. The executor runs the speed loop
+every 1 ms, current PI and PWM/inverter every 50 µs, and CSV logging every 100 µs.
+Set each clock's rate in Hz using `speed_control.rate_hz`, `current_pi.rate_hz`,
+`inverter.pwm_rate_hz`, and `simulation.log_rate_hz`. Rates must be positive
+integers that divide 1,000,000,000 exactly so every tick lands on a whole
+nanosecond. Older configurations can still specify periods in nanoseconds or
+use `log_every_steps` for logging. A rate in Hz takes precedence over its
+legacy period.
+
+RK4 advances the plant for 0.4 s. The maximum step is `simulation.step_s`
+(10 µs by default), and the executor shortens steps to land on clock events.
+At a shared timestamp it publishes plant outputs, then runs speed control,
+current control, PWM, and logging in that order. The current PI advances its
+integrators once per current tick. Phase voltages are held between PWM ticks.
+
+The CSV includes both endpoints. Phase currents, speed, and position come from
+the accepted plant state. The dq current columns report the last current sample,
+and the command, duty, and voltage columns report held values.
 
 Each model in `blocks/` has its own Bazel library target. For example, a plant-only
 simulation can depend on `//blocks:plant` and supply phase voltages and load torque
-directly. `drive.h` wires the independent blocks into the current loop. Motor and
-controller state are supplied by the caller at each evaluation. Eigen provides
-fixed-size phase vectors, PI vector math, and integration state.
+directly. Use `//blocks:continuous_pmsm` for a standalone motor block that owns
+its state, runs RK4, and publishes accepted outputs. `drive.h` wires the
+independent blocks into the current loop. The executor
+stores member callbacks in a fixed-capacity registry and dispatches synchronously.
+Bound objects must stay alive at a stable address through the simulation run.

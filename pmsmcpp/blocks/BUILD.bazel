@@ -21,6 +21,16 @@ cc_library(
 )
 
 cc_library(
+    name = "continuous_pmsm",
+    hdrs = ["continuous_pmsm.h"],
+    deps = [
+        ":plant",
+        "//:rk4",
+        "//:simulation_executor",
+    ],
+)
+
+cc_library(
     name = "current_feedback",
     hdrs = ["current_feedback.h"],
     deps = [":transforms"],
