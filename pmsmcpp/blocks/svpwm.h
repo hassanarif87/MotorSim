@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <stdexcept>
 
 #include "blocks/transforms.h"
@@ -20,10 +21,11 @@ inline DutyCycles svpwm(DqVoltage dq, double theta_e, double bus_voltage) {
 
 namespace drive_blocks {
 
-/// Latest dq voltage command (V) and mechanical position (rad) sampled by SVPWM.
+/// dq voltage command (V), mechanical position (rad), and speed (rad/s).
 struct PwmInputs {
     InputPort<Voltage> vd, vq;
     InputPort<Position> theta;
+    InputPort<Speed> omega;
 };
 
 /// Normalized phase duty commands published by SVPWM.
@@ -36,11 +38,15 @@ class Pwm {
     };
 
 public:
-    explicit Pwm(const BlockSpec& spec) : Pwm(spec.read_parameters<Parameters>()) {}
+    explicit Pwm(const BlockSpec& spec)
+        : Pwm(spec.read_parameters<Parameters>(),
+              std::chrono::duration<double>(spec.period().value()).count()) {}
 
     void tick() {
+        // Center the voltage vector over the interval for which the inverter holds it.
+        const double theta_mid = inputs.theta.read() + half_period_s_ * inputs.omega.read();
         const auto duty = svpwm({inputs.vd.read(), inputs.vq.read()},
-                                pole_pairs_ * inputs.theta.read(), bus_voltage_);
+                                pole_pairs_ * theta_mid, bus_voltage_);
         outputs = {duty.abc[0], duty.abc[1], duty.abc[2]};
     }
 
@@ -48,12 +54,13 @@ public:
     DutyOutputs outputs;
 
 private:
-    explicit Pwm(const Parameters& p)
+    Pwm(const Parameters& p, double period_s)
         : pole_pairs_(p.pole_pairs.get()),
-          bus_voltage_(p.bus_voltage_v.get()) {}
+          bus_voltage_(p.bus_voltage_v.get()), half_period_s_(period_s / 2.0) {}
 
     int pole_pairs_;
     double bus_voltage_;
+    double half_period_s_;
 };
 
 }  // namespace drive_blocks
