@@ -83,3 +83,12 @@ cc_library(
         "//:configuration",
     ],
 )
+
+cc_library(
+    name = "constant_torque",
+    hdrs = ["constant_torque.h"],
+    deps = [
+        "//graph:block_ports",
+        "//:configuration",
+    ],
+)

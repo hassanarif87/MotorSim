@@ -1,7 +1,7 @@
 {
   "simulation": {
-    "step_s": 1e-05,
-    "steps": 40000,
+    "step_s": 1e-06,
+    "steps": 80000,
     "log_rate_hz": 10000
   },
   "blocks": [
@@ -15,8 +15,14 @@
         "back_emf_v_per_rad_s": 0.017089567968012923,
         "torque_constant_nm_per_a": 0.01771066784611906,
         "inertia_kg_m2": 9.597e-06,
-        "viscous_friction_nm_per_rad_s": 0.0,
-        "load_torque_nm": 0.0
+        "viscous_friction_nm_per_rad_s": 0.0
+      }
+    },
+    {
+      "name": "load",
+      "type": "ConstantTorque",
+      "parameters": {
+        "value_nm": 0.0
       }
     },
     {
@@ -78,6 +84,7 @@
     }
   ],
   "connections": [
+    ["pmsm.load_torque", "load.value"],
     ["speed_control.omega", "pmsm.omega"],
     ["current_feedback.ia", "pmsm.ia"],
     ["current_feedback.ib", "pmsm.ib"],

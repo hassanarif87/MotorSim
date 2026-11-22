@@ -18,7 +18,6 @@ struct MotorParameters {
     NonnegativeReal torque_constant_nm_per_a{0.1};
     PositiveReal inertia_kg_m2{0.03};
     NonnegativeReal viscous_friction_nm_per_rad_s{0.0};
-    std::optional<FiniteReal> load_torque_nm;
 };
 
 struct MotorState {
@@ -73,8 +72,11 @@ private:
 
 namespace drive_blocks {
 
-/// Applied phase voltages at the continuous motor input, in volts.
-struct PhaseVoltageInputs { InputPort<Voltage> va, vb, vc; };
+/// Applied phase voltages (V) and shaft load torque (N·m).
+struct PlantInputs {
+    InputPort<Voltage> va, vb, vc;
+    InputPort<Torque> load_torque;
+};
 
 /// Motor phase currents (A), mechanical speed (rad/s), and position (rad).
 struct PlantOutputs {
@@ -89,14 +91,14 @@ public:
         : ContinuousPmsm(spec.read_parameters<MotorParameters>()) {}
 
     explicit ContinuousPmsm(const MotorParameters& parameters, MotorState initial = {})
-        : plant_(parameters), state_(initial),
-          load_torque_(parameters.load_torque_nm ? parameters.load_torque_nm->get() : 0.0) {
+        : plant_(parameters), state_(initial) {
         publish();
     }
 
     void advance(SimulationExecutor::Duration interval) {
-        // Sample the held phase voltages once for all four RK4 stages.
-        const MotorInput input{{{inputs.va.read(), inputs.vb.read(), inputs.vc.read()}}, load_torque_};
+        // Sample the held inputs once for all four RK4 stages.
+        const MotorInput input{{{inputs.va.read(), inputs.vb.read(), inputs.vc.read()}},
+                               inputs.load_torque.read()};
         const State initial(state_.iq, state_.id, state_.omega, state_.theta);
         const auto derivative = [this, &input](const State& trial) {
             const auto rate = plant_.derivative({trial[0], trial[1], trial[2], trial[3]}, input);
@@ -109,7 +111,7 @@ public:
         publish();
     }
 
-    PhaseVoltageInputs inputs;
+    PlantInputs inputs;
     PlantOutputs outputs;
 
 private:
@@ -122,7 +124,6 @@ private:
 
     PmsmPlant plant_;
     MotorState state_;
-    double load_torque_;
 };
 
 }  // namespace drive_blocks

@@ -30,6 +30,7 @@ struct Signal {
 
 using Voltage = Signal<struct VoltageTag>;
 using Current = Signal<struct CurrentTag>;
+using Torque = Signal<struct TorqueTag>;
 using Speed = Signal<struct SpeedTag>;
 using Position = Signal<struct PositionTag>;
 using Duty = Signal<struct DutyTag>;

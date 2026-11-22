@@ -33,6 +33,14 @@ use the workspace defaults. When you change the topology, supply the
 complete connection list. Log columns can refer to numeric inputs or
 outputs. The logger adds `time_s` automatically.
 
+### Set the motor load torque
+
+Set `value_nm` in the parameters of the block named `load`. The
+`["pmsm.load_torque", "load.value"]` connection applies that constant
+torque in newton-metres to the motor. For an older configuration, move
+the motor’s `load_torque_nm` setting to the new block’s `value_nm` and
+add the connection.
+
 ### Replace the speed loop with a fixed current reference
 
 1. Remove the instance named `speed_control` from `blocks` and add the

@@ -9,6 +9,7 @@ cc_library(
     deps = [
         "//:configuration",
         "//blocks:constant_current",
+        "//blocks:constant_torque",
         "//blocks:continuous_pmsm",
         "//blocks:current_feedback",
         "//blocks:current_pi",

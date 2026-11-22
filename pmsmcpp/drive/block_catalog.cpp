@@ -1,6 +1,7 @@
 #include "drive/drive.h"
 
 #include "blocks/constant_current.h"
+#include "blocks/constant_torque.h"
 #include "blocks/continuous_pmsm.h"
 #include "blocks/current_feedback.h"
 #include "blocks/current_pi.h"
@@ -18,7 +19,8 @@ Drive::Factory Drive::find_factory(std::string_view type) {
     X("current_pi", CurrentController) \
     X("svpwm", Pwm) \
     X("inverter", Inverter) \
-    X("constant_current", ConstantCurrent)
+    X("constant_current", ConstantCurrent) \
+    X("ConstantTorque", ConstantTorque)
 
 #define PMSM_FACTORY(name, block) if (type == name) return &add<drive_blocks::block>;
     PMSM_BLOCK_TYPES(PMSM_FACTORY)
