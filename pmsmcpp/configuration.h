@@ -8,7 +8,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -18,28 +18,15 @@
 
 namespace pmsm {
 
-struct CurrentPiConfig {
-    double kp;
-    double ki;
-    double kaw;
-    double id_reference_a;
-    SimulationExecutor::Duration period;
-};
-
-struct InverterConfig {
-    double bus_voltage_v;
-    SimulationExecutor::Duration pwm_period;
-};
-
-struct SpeedControlConfig {
-    double gain_a_per_rad_s;
-    double max_current_a;
-    std::optional<double> reference_rad_s;
-    SimulationExecutor::Duration period;
+struct BlockSpec {
+    std::string name;
+    std::string type;
+    nlohmann::json parameters;
+    std::optional<SimulationExecutor::Duration> period;
+    int priority = 0;
 };
 
 struct SimulationConfig {
-    double load_torque_nm;
     double step_s;
     int steps;
     int log_every_steps;
@@ -63,12 +50,10 @@ struct SimulationConfig {
 };
 
 struct Configuration {
-    MotorParameters motor;
-    CurrentPiConfig current_pi;
-    InverterConfig inverter;
-    SpeedControlConfig speed_control;
     SimulationConfig simulation;
+    std::vector<BlockSpec> blocks;
     std::optional<Connections> connections;
+    std::optional<Connections> log_columns;
 };
 
 namespace config_detail {
@@ -139,40 +124,27 @@ inline void from_json(const nlohmann::json& json, MotorParameters& motor) {
     };
 }
 
-inline void from_json(const nlohmann::json& json, CurrentPiConfig& config) {
-    using config_detail::bounded_number;
-    config = {
-        bounded_number(json, "kp", true),
-        bounded_number(json, "ki", true),
-        bounded_number(json, "kaw", true),
-        config_detail::number(json, "id_reference_a"),
-        config_detail::tick_period(json, "rate_hz", "period_ns")
-            .value_or(SimulationExecutor::Duration(50'000)),
-    };
-}
-
-inline void from_json(const nlohmann::json& json, InverterConfig& config) {
-    config = {config_detail::bounded_number(json, "bus_voltage_v", false),
-              config_detail::tick_period(json, "pwm_rate_hz", "pwm_period_ns")
-                  .value_or(SimulationExecutor::Duration(50'000))};
-}
-
-inline void from_json(const nlohmann::json& json, SpeedControlConfig& config) {
-    const auto reference = json.at("reference_rad_s").is_null()
-        ? std::nullopt
-        : std::optional<double>(config_detail::number(json, "reference_rad_s"));
-    config = {
-        config_detail::bounded_number(json, "gain_a_per_rad_s", true),
-        config_detail::bounded_number(json, "max_current_a", true),
-        reference,
-        config_detail::tick_period(json, "rate_hz", "period_ns")
-            .value_or(SimulationExecutor::Duration(1'000'000)),
-    };
+inline void from_json(const nlohmann::json& json, BlockSpec& block) {
+    json.at("name").get_to(block.name);
+    json.at("type").get_to(block.type);
+    block.parameters = json.value("parameters", nlohmann::json::object());
+    if (!block.parameters.is_object()) {
+        throw std::invalid_argument("Block parameters must be an object: " + block.name);
+    }
+    block.period = config_detail::tick_period(json, "rate_hz", "period_ns");
+    block.priority = 0;
+    if (json.contains("priority")) {
+        const double priority = config_detail::number(json, "priority");
+        if (!json.at("priority").is_number_integer() || priority < 0 ||
+            priority >= std::numeric_limits<int>::max()) {
+            throw std::invalid_argument("Invalid block priority: " + block.name);
+        }
+        block.priority = static_cast<int>(priority);
+    }
 }
 
 inline void from_json(const nlohmann::json& json, SimulationConfig& config) {
     config = {
-        config_detail::number(json, "load_torque_nm"),
         config_detail::bounded_number(json, "step_s", false),
         config_detail::positive_integer(json, "steps"),
         config_detail::period_or(json, "log_every_steps", 10),
@@ -180,29 +152,34 @@ inline void from_json(const nlohmann::json& json, SimulationConfig& config) {
     };
 }
 
+namespace config_detail {
+
+inline std::optional<Connections> port_pairs(const Json& json, const char* key) {
+    if (!json.contains(key)) {
+        return std::nullopt;
+    }
+    const auto& entries = json.at(key);
+    if (!entries.is_array()) {
+        throw std::invalid_argument(std::string(key) + " must be an array of string pairs");
+    }
+    Connections pairs;
+    for (const auto& entry : entries) {
+        if (!entry.is_array() || entry.size() != 2 || !entry[0].is_string() || !entry[1].is_string()) {
+            throw std::invalid_argument(std::string(key) + " requires pairs of strings");
+        }
+        pairs.push_back(entry.get<Connections::value_type>());
+    }
+    return pairs;
+}
+
+}  // namespace config_detail
+
 inline void from_json(const nlohmann::json& json, Configuration& config) {
-    json.at("motor").get_to(config.motor);
-    json.at("current_pi").get_to(config.current_pi);
-    json.at("inverter").get_to(config.inverter);
-    json.at("speed_control").get_to(config.speed_control);
     json.at("simulation").get_to(config.simulation);
     config.simulation.integration_step();
-    config.connections.reset();
-    if (json.contains("connections")) {
-        const auto& connections = json.at("connections");
-        if (!connections.is_array()) {
-            throw std::invalid_argument("connections must be an array of [destination, source] pairs");
-        }
-        Connections parsed;
-        for (const auto& connection : connections) {
-            if (!connection.is_array() || connection.size() != 2 ||
-                !connection[0].is_string() || !connection[1].is_string()) {
-                throw std::invalid_argument("Expected a [destination, source] pair of port names");
-            }
-            parsed.push_back(connection.get<Connections::value_type>());
-        }
-        config.connections = std::move(parsed);
-    }
+    json.at("blocks").get_to(config.blocks);
+    config.connections = config_detail::port_pairs(json, "connections");
+    config.log_columns = config_detail::port_pairs(json, "log_columns");
 }
 
 inline Configuration load_configuration(const std::filesystem::path& path) {

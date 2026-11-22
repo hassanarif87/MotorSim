@@ -58,3 +58,18 @@ cc_library(
     name = "speed_control",
     hdrs = ["speed_control.h"],
 )
+
+cc_library(
+    name = "drive_blocks",
+    hdrs = ["drive_blocks.h"],
+    deps = [
+        ":continuous_pmsm",
+        ":current_feedback",
+        ":current_pi",
+        ":inverter",
+        ":speed_control",
+        ":svpwm",
+        "//:block_graph",
+        "//:configuration",
+    ],
+)

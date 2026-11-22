@@ -14,6 +14,7 @@ cc_library(
 cc_library(
     name = "block_graph",
     hdrs = ["block_graph.h"],
+    visibility = ["//blocks:__pkg__"],
     deps = [
         ":connections",
         "@boost.describe",
@@ -24,15 +25,7 @@ cc_library(
 cc_library(
     name = "drive",
     hdrs = ["drive.h"],
-    deps = [
-        ":block_graph",
-        "//blocks:continuous_pmsm",
-        "//blocks:current_feedback",
-        "//blocks:current_pi",
-        "//blocks:inverter",
-        "//blocks:speed_control",
-        "//blocks:svpwm",
-    ],
+    deps = ["//blocks:drive_blocks"],
 )
 
 cc_library(
@@ -44,6 +37,7 @@ cc_library(
 cc_library(
     name = "configuration",
     hdrs = ["configuration.h"],
+    visibility = ["//blocks:__pkg__"],
     deps = [
         ":connections",
         ":simulation_executor",
@@ -59,9 +53,7 @@ cc_binary(
     deps = [
         ":configuration",
         ":drive",
-        "//blocks:continuous_pmsm",
         ":simulation_executor",
-        "//blocks:speed_control",
         "@csv-parser//:csv-parser",
     ],
 )

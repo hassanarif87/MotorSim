@@ -1,6 +1,4 @@
-#include <array>
 #include <charconv>
-#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -8,11 +6,10 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <csv.hpp>
 
-#include "blocks/continuous_pmsm.h"
-#include "blocks/speed_control.h"
 #include "configuration.h"
 #include "drive.h"
 #include "simulation_executor.h"
@@ -42,86 +39,50 @@ struct CsvNumber {
 class CsvLogger {
 public:
     CsvLogger(std::ostream& output, const Executor& executor,
-              const pmsm::CurrentControlledPmsm& drive)
-        : output_(output), writer_(output), executor_(executor), drive_(drive) {
-        writer_ << columns_;
+              const std::vector<pmsm::Drive::Column>& columns)
+        : output_(output), writer_(output), executor_(executor), columns_(columns),
+          row_(columns.size() + 1, CsvNumber(0.0)) {
+        std::vector<std::string> header{"time_s"};
+        for (const auto& column : columns_) {
+            header.push_back(column.header);
+        }
+        writer_ << header;
     }
 
     void tick() {
-        const auto& motor = drive_.motor_outputs();
-        const auto& measured = drive_.feedback_outputs();
-        const auto& command = drive_.pi_outputs();
-        const auto& duty = drive_.pwm_outputs();
-        const auto& voltage = drive_.inverter_outputs();
-        const auto reference = drive_.current_reference();
-        const std::array<CsvNumber, columns_.size()> row{
-            std::chrono::duration<double>(executor_.now()).count(),
-            motor.ia.value, motor.ib.value, motor.ic.value, motor.omega.value, motor.theta.value,
-            measured.id.value, measured.iq.value, reference.d, reference.q,
-            command.vd.value, command.vq.value, duty.duty_a.value, duty.duty_b.value,
-            duty.duty_c.value, voltage.va.value, voltage.vb.value, voltage.vc.value,
-        };
-        writer_ << row;
+        row_[0] = std::chrono::duration<double>(executor_.now()).count();
+        for (std::size_t i = 0; i < columns_.size(); ++i) {
+            row_[i + 1] = columns_[i].source();
+        }
+        writer_ << row_;
         if (!output_) {
             throw std::runtime_error("Could not write CSV row");
         }
     }
 
 private:
-    inline static const std::array<std::string, 18> columns_{
-        "time_s", "ia_a", "ib_a", "ic_a", "omega_rad_s", "theta_rad", "id_a", "iq_a",
-        "id_ref_a", "iq_ref_a", "vd_v", "vq_v", "duty_a", "duty_b", "duty_c", "va_v", "vb_v", "vc_v",
-    };
     std::ostream& output_;
     csv::CSVWriter<std::ostream, false> writer_;
     const Executor& executor_;
-    const pmsm::CurrentControlledPmsm& drive_;
+    const std::vector<pmsm::Drive::Column>& columns_;
+    std::vector<CsvNumber> row_;
 };
 
 void simulate(const std::filesystem::path& path, const pmsm::Configuration& config) {
-    const auto& motor = config.motor;
-    const auto& pi = config.current_pi;
     const auto& sim = config.simulation;
-    const auto& speed_config = config.speed_control;
-    const double bus_voltage = config.inverter.bus_voltage_v;
     const auto max_step = sim.integration_step();
-    const Duration log_period = sim.log_period ? *sim.log_period
-                                               : max_step * sim.log_every_steps;
-    const Duration current_period = pi.period;
+    const Duration log_period = sim.log_period ? *sim.log_period : max_step * sim.log_every_steps;
     const auto end = max_step * sim.steps;
-
-    Executor executor(max_step);
-    pmsm::ContinuousPmsm continuous(pmsm::PmsmPlant(motor), sim.load_torque_nm);
-    const pmsm::CurrentPi controller({
-        pi.kp, pi.ki, pi.kaw, motor.inductance, motor.pole_pairs, motor.back_emf_constant,
-    });
-    const pmsm::SpeedControl speed(speed_config.gain_a_per_rad_s, speed_config.max_current_a);
-    const double speed_reference = speed_config.reference_rad_s.value_or(
-        bus_voltage / (std::sqrt(3.0) * motor.back_emf_constant));
-    pmsm::CurrentControlledPmsm drive(
-        continuous, controller, speed, bus_voltage, speed_reference, pi.id_reference_a,
-        current_period, config.connections.value());
+    pmsm::Drive drive(config);
+    auto& executor = drive.executor();
 
     std::ofstream output(path, std::ios::binary);
     if (!output) {
         throw std::runtime_error("Could not open CSV file");
     }
     {
-        CsvLogger logger(output, executor, drive);
-        enum Priority { speed_tick, feedback_tick, current_tick, pwm_tick, inverter_tick, logging_tick };
-        executor.register_continuous(
-            Executor::AdvanceCallback::bind<&pmsm::CurrentControlledPmsm::advance>(drive));
-        executor.register_update(speed_config.period, speed_tick,
-            Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_speed>(drive));
-        executor.register_update(current_period, feedback_tick,
-            Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_feedback>(drive));
-        executor.register_update(current_period, current_tick,
-            Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_current>(drive));
-        executor.register_update(config.inverter.pwm_period, pwm_tick,
-            Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_svpwm>(drive));
-        executor.register_update(config.inverter.pwm_period, inverter_tick,
-            Executor::UpdateCallback::bind<&pmsm::CurrentControlledPmsm::tick_inverter>(drive));
-        executor.register_update(log_period, logging_tick,
+        CsvLogger logger(output, executor, drive.columns());
+        executor.register_update(log_period, std::numeric_limits<int>::max(),
             Executor::UpdateCallback::bind<&CsvLogger::tick>(logger));
 
         executor.run(end);
@@ -150,10 +111,16 @@ int main(int argc, char** argv) {
     pmsm::Configuration config;
     try {
         config = pmsm::load_configuration(config_path);
-        if (!config.connections) {
-            config.connections = pmsm::load_configuration(base / "pmsm_config.json").connections;
+        if (!config.connections || !config.log_columns) {
+            const auto defaults = pmsm::load_configuration(base / "pmsm_config.json");
             if (!config.connections) {
-                throw std::invalid_argument("No connections in the supplied or default configuration");
+                config.connections = defaults.connections;
+            }
+            if (!config.log_columns) {
+                config.log_columns = defaults.log_columns;
+            }
+            if (!config.connections || !config.log_columns) {
+                throw std::invalid_argument("The supplied or default configuration must define connections and log_columns");
             }
         }
     } catch (const std::exception& error) {
