@@ -40,9 +40,9 @@ cc_library(
     name = "current_pi",
     hdrs = ["current_pi.h"],
     deps = [
-        ":signals",
         "//graph:block_ports",
         "//:configuration",
+        "@eigen//:eigen",
     ],
 )
 

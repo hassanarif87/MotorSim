@@ -1,6 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 #include "blocks/current_pi.h"
 #include "blocks/inverter.h"
@@ -37,13 +38,40 @@ void check_plant() {
 }
 
 void check_voltage_blocks() {
-    const pmsm::CurrentPi pi({2.0, 1.0, 2.0, 0.25, 2, 0.2});
-    const auto control = pi.evaluate(Eigen::Vector2d::Zero(),
-                                     {{0.0, 10.0}, {0.0, 0.0}, 0.0, std::sqrt(3.0)});
-    expect_near(control.voltage.q, 1.0, "limited q voltage");
-    expect_near(control.integral_derivative.y(), -28.0, "q integrator anti-windup");
+    using namespace pmsm::drive_blocks;
+    rfl::Generic::Object parameters;
+    parameters.insert(std::string("kp"), rfl::Generic(2.0));
+    parameters.insert(std::string("ki"), rfl::Generic(1.0));
+    parameters.insert(std::string("kaw"), rfl::Generic(2.0));
+    parameters.insert(std::string("inductance_h"), rfl::Generic(0.25));
+    parameters.insert(std::string("pole_pairs"), rfl::Generic(2));
+    parameters.insert(std::string("back_emf_v_per_rad_s"), rfl::Generic(0.2));
+    parameters.insert(std::string("id_reference_a"), rfl::Generic(0.0));
+    parameters.insert(std::string("bus_voltage_v"), rfl::Generic(std::sqrt(3.0)));
+    const pmsm::BlockSpec spec{
+        .name = "current_pi",
+        .type = "current_pi",
+        .parameters = parameters,
+        .rate_hz = pmsm::RateHz{10},
+    };
+    CurrentController controller(spec);
+    Current iq_ref{10.0};
+    const Current measured{0.0};
+    const Speed omega{0.0};
+    controller.inputs.iq_ref.bind(iq_ref);
+    controller.inputs.id.bind(measured);
+    controller.inputs.iq.bind(measured);
+    controller.inputs.omega.bind(omega);
 
-    const auto duty = pmsm::svpwm(control.voltage, 0.0, std::sqrt(3.0));
+    controller.tick();
+    expect_near(controller.outputs.vq, 1.0, "limited q voltage");
+    const auto duty = pmsm::svpwm({controller.outputs.vd, controller.outputs.vq},
+                                 0.0, std::sqrt(3.0));
+
+    iq_ref = 1.0;
+    controller.tick();
+    expect_near(controller.outputs.vq, -0.8, "q voltage after anti-windup");
+
     const auto voltage = pmsm::ideal_inverter(duty, std::sqrt(3.0));
     const auto dq = pmsm::clarke_park(0.0, voltage.abc);
     expect_near(dq.x(), 0.0, "reconstructed d voltage");
