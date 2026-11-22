@@ -12,7 +12,7 @@ namespace pmsm {
 
 Drive::Factory Drive::find_factory(std::string_view type) {
 #define PMSM_BLOCK_TYPES(X) \
-    X("pmsm", Motor) \
+    X("pmsm", ContinuousPmsm) \
     X("speed_control", SpeedController) \
     X("current_feedback", Feedback) \
     X("current_pi", CurrentController) \

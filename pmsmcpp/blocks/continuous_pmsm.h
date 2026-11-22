@@ -71,39 +71,6 @@ private:
     MotorParameters parameters_;
 };
 
-class ContinuousPmsm {
-public:
-    explicit ContinuousPmsm(PmsmPlant plant, double load_torque, MotorState initial = {})
-        : plant_(plant), state_(initial), input_{{Eigen::Vector3d::Zero()}, load_torque},
-          output_(plant_.output(state_)) {}
-
-    void set_voltage(const PhaseVoltage& voltage) { input_.voltage = voltage; }
-    int pole_pairs() const { return plant_.pole_pairs(); }
-    const MotorOutput& output() const { return output_; }
-
-    void advance(SimulationExecutor::Duration interval) {
-        const State initial(state_.iq, state_.id, state_.omega, state_.theta);
-        const auto derivative = [this](const State& trial) {
-            const auto rate = plant_.derivative({trial[0], trial[1], trial[2], trial[3]}, input_);
-            return State(rate.iq, rate.id, rate.omega, rate.theta);
-        };
-        const auto accepted = rk4_step(initial, std::chrono::duration<double>(interval).count(),
-                                       derivative);
-        state_ = {accepted[0], accepted[1], accepted[2], accepted[3]};
-        post_integrate();
-    }
-
-private:
-    using State = Eigen::Vector4d;
-
-    void post_integrate() { output_ = plant_.output(state_); }
-
-    PmsmPlant plant_;
-    MotorState state_;
-    MotorInput input_;
-    MotorOutput output_;
-};
-
 namespace drive_blocks {
 
 /// Applied phase voltages at the continuous motor input, in volts.
@@ -116,13 +83,29 @@ struct PlantOutputs {
     Position theta;
 };
 
-class Motor {
+class ContinuousPmsm {
 public:
-    explicit Motor(const BlockSpec& spec) : Motor(spec.read_parameters<MotorParameters>()) {}
+    explicit ContinuousPmsm(const BlockSpec& spec)
+        : ContinuousPmsm(spec.read_parameters<MotorParameters>()) {}
+
+    explicit ContinuousPmsm(const MotorParameters& parameters, MotorState initial = {})
+        : plant_(parameters), state_(initial),
+          load_torque_(parameters.load_torque_nm ? parameters.load_torque_nm->get() : 0.0) {
+        publish();
+    }
 
     void advance(SimulationExecutor::Duration interval) {
-        motor_.set_voltage({{inputs.va.read(), inputs.vb.read(), inputs.vc.read()}});
-        motor_.advance(interval);
+        // Sample the held phase voltages once for all four RK4 stages.
+        const MotorInput input{{{inputs.va.read(), inputs.vb.read(), inputs.vc.read()}}, load_torque_};
+        const State initial(state_.iq, state_.id, state_.omega, state_.theta);
+        const auto derivative = [this, &input](const State& trial) {
+            const auto rate = plant_.derivative({trial[0], trial[1], trial[2], trial[3]}, input);
+            return State(rate.iq, rate.id, rate.omega, rate.theta);
+        };
+
+        const auto accepted = rk4_step(initial, std::chrono::duration<double>(interval).count(),
+                                       derivative);
+        state_ = {accepted[0], accepted[1], accepted[2], accepted[3]};
         publish();
     }
 
@@ -130,18 +113,16 @@ public:
     PlantOutputs outputs;
 
 private:
-    explicit Motor(const MotorParameters& parameters)
-        : motor_(PmsmPlant(parameters),
-                 parameters.load_torque_nm ? parameters.load_torque_nm->get() : 0.0) {
-        publish();
-    }
+    using State = Eigen::Vector4d;
 
     void publish() {
-        const auto& out = motor_.output();
+        const auto out = plant_.output(state_);
         outputs = {out.current.abc[0], out.current.abc[1], out.current.abc[2], out.omega, out.theta};
     }
 
-    ContinuousPmsm motor_;
+    PmsmPlant plant_;
+    MotorState state_;
+    double load_torque_;
 };
 
 }  // namespace drive_blocks
