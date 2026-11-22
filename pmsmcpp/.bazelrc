@@ -1,3 +1,4 @@
 build --repo_env=CC=gcc-16
 build --cxxopt=-std=c++26
 build --cxxopt=-freflection
+build --cxxopt=-O3
