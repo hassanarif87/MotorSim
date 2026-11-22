@@ -16,7 +16,7 @@ with `bazel test //test/...`.
 | [`drive/block_catalog.cpp`](src/drive/block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
 | [`graph/block_ports.h`](src/graph/block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
 | [`graph/block_graph.h`](src/graph/block_graph.h) | Uses C++26 reflection to discover named ports, validate connections, and resolve CSV readers. |
-| [`blocks/`](blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
+| [`src/blocks/`](src/blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
 | [`simulation_executor.h`](src/simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
 
 Each factory reads its block's parameter object into a local C++ struct.
