@@ -8,10 +8,12 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include <nlohmann/json.hpp>
 
 #include "blocks/plant.h"
+#include "connections.h"
 #include "simulation_executor.h"
 
 namespace pmsm {
@@ -66,6 +68,7 @@ struct Configuration {
     InverterConfig inverter;
     SpeedControlConfig speed_control;
     SimulationConfig simulation;
+    std::optional<Connections> connections;
 };
 
 namespace config_detail {
@@ -184,6 +187,22 @@ inline void from_json(const nlohmann::json& json, Configuration& config) {
     json.at("speed_control").get_to(config.speed_control);
     json.at("simulation").get_to(config.simulation);
     config.simulation.integration_step();
+    config.connections.reset();
+    if (json.contains("connections")) {
+        const auto& connections = json.at("connections");
+        if (!connections.is_array()) {
+            throw std::invalid_argument("connections must be an array of [destination, source] pairs");
+        }
+        Connections parsed;
+        for (const auto& connection : connections) {
+            if (!connection.is_array() || connection.size() != 2 ||
+                !connection[0].is_string() || !connection[1].is_string()) {
+                throw std::invalid_argument("Expected a [destination, source] pair of port names");
+            }
+            parsed.push_back(connection.get<Connections::value_type>());
+        }
+        config.connections = std::move(parsed);
+    }
 }
 
 inline Configuration load_configuration(const std::filesystem::path& path) {

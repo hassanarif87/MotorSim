@@ -7,9 +7,25 @@ cc_library(
 )
 
 cc_library(
+    name = "connections",
+    hdrs = ["connections.h"],
+)
+
+cc_library(
+    name = "block_graph",
+    hdrs = ["block_graph.h"],
+    deps = [
+        ":connections",
+        "@boost.describe",
+        "@boost.mp11",
+    ],
+)
+
+cc_library(
     name = "drive",
     hdrs = ["drive.h"],
     deps = [
+        ":block_graph",
         "//blocks:continuous_pmsm",
         "//blocks:current_feedback",
         "//blocks:current_pi",
@@ -29,6 +45,7 @@ cc_library(
     name = "configuration",
     hdrs = ["configuration.h"],
     deps = [
+        ":connections",
         ":simulation_executor",
         "//blocks:plant",
         "@nlohmann_json//:json",
@@ -68,4 +85,11 @@ cc_test(
         ":rk4",
         ":simulation_executor",
     ],
+)
+
+cc_test(
+    name = "block_graph_test",
+    size = "small",
+    srcs = ["block_graph_test.cpp"],
+    deps = [":block_graph"],
 )

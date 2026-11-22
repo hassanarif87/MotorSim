@@ -30,5 +30,25 @@
     "step_s": 0.00001,
     "steps": 40000,
     "log_rate_hz": 10000
-  }
+  },
+  "connections": [
+    ["speed_control.omega", "pmsm.omega"],
+    ["current_feedback.ia", "pmsm.ia"],
+    ["current_feedback.ib", "pmsm.ib"],
+    ["current_feedback.ic", "pmsm.ic"],
+    ["current_feedback.theta", "pmsm.theta"],
+    ["current_pi.iq_ref", "speed_control.iq_ref"],
+    ["current_pi.id", "current_feedback.id"],
+    ["current_pi.iq", "current_feedback.iq"],
+    ["current_pi.omega", "pmsm.omega"],
+    ["svpwm.vd", "current_pi.vd"],
+    ["svpwm.vq", "current_pi.vq"],
+    ["svpwm.theta", "pmsm.theta"],
+    ["inverter.duty_a", "svpwm.duty_a"],
+    ["inverter.duty_b", "svpwm.duty_b"],
+    ["inverter.duty_c", "svpwm.duty_c"],
+    ["pmsm.va", "inverter.va"],
+    ["pmsm.vb", "inverter.vb"],
+    ["pmsm.vc", "inverter.vc"]
+  ]
 }

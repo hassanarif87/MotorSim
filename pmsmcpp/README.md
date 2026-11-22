@@ -50,3 +50,26 @@ its state, runs RK4, and publishes accepted outputs. `drive.h` wires the
 independent blocks into the current loop. The executor
 stores member callbacks in a fixed-capacity registry and dispatches synchronously.
 Bound objects must stay alive at a stable address through the simulation run.
+
+## Block connections
+
+The `connections` array in `pmsm_config.json` uses Python's
+`[destination, source]` order. For example:
+
+```json
+[
+  ["pmsm.va", "inverter.va"],
+  ["current_pi.iq_ref", "speed_control.iq_ref"]
+]
+```
+
+The supplied file lists the complete graph. A custom config can provide its own
+complete list or omit `connections` to use the graph from the workspace's
+`pmsm_config.json`. Each input requires one source of the same signal type.
+The graph builder checks the names, direction, types, and required inputs before
+opening the CSV, then the blocks read their bound ports directly.
+
+Block instances and their order at coincident ticks are defined in C++.
+Current feedback runs before the PI, and SVPWM runs before the inverter.
+A connection reads the value last published by its source. Rewiring a
+connection does not change either block's clock or execution order.
