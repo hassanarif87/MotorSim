@@ -1,7 +1,7 @@
 {
   "simulation": {
     "step_s": 1e-06,
-    "steps": 80000,
+    "steps": 400000,
     "log_rate_hz": 10000
   },
   "blocks": [
@@ -97,6 +97,7 @@
     ["svpwm.vd", "current_pi.vd"],
     ["svpwm.vq", "current_pi.vq"],
     ["svpwm.theta", "pmsm.theta"],
+    ["svpwm.omega", "pmsm.omega"],
     ["inverter.duty_a", "svpwm.duty_a"],
     ["inverter.duty_b", "svpwm.duty_b"],
     ["inverter.duty_c", "svpwm.duty_c"],
