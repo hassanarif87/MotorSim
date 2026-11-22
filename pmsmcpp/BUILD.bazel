@@ -78,7 +78,7 @@ cc_test(
     deps = [
         "//blocks:current_pi",
         "//blocks:inverter",
-        "//blocks:plant",
+        "//blocks:continuous_pmsm",
         "//blocks:svpwm",
     ],
 )

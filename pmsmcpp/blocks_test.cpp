@@ -4,7 +4,7 @@
 
 #include "blocks/current_pi.h"
 #include "blocks/inverter.h"
-#include "blocks/plant.h"
+#include "blocks/continuous_pmsm.h"
 #include "blocks/svpwm.h"
 
 namespace {

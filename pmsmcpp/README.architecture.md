@@ -63,7 +63,7 @@ flowchart LR
    those held voltages and commits the accepted state. It computes phase
    currents, speed, and position before the next digital callbacks run.
 
-[`PmsmPlant`](blocks/plant.h) provides the motor equations. The digital
+[`PmsmPlant`](blocks/continuous_pmsm.h) provides the motor equations. The digital
 current PI advances its own integrators once per current tick. SVPWM and the
 averaged inverter publish duty cycles and voltages that remain available
 until their next ticks.

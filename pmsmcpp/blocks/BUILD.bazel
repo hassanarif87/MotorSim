@@ -15,16 +15,10 @@ cc_library(
 )
 
 cc_library(
-    name = "plant",
-    hdrs = ["plant.h"],
-    deps = [":transforms"],
-)
-
-cc_library(
     name = "continuous_pmsm",
     hdrs = ["continuous_pmsm.h"],
     deps = [
-        ":plant",
+        ":transforms",
         "//:block_ports",
         "//:configuration",
         "//:rk4",
