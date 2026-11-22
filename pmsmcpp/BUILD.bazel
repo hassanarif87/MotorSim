@@ -1,0 +1,51 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+cc_library(
+    name = "drive",
+    hdrs = ["drive.h"],
+    deps = [
+        "//blocks:current_feedback",
+        "//blocks:current_pi",
+        "//blocks:inverter",
+        "//blocks:plant",
+        "//blocks:svpwm",
+    ],
+)
+
+cc_library(
+    name = "rk4",
+    hdrs = ["rk4.h"],
+)
+
+cc_library(
+    name = "configuration",
+    hdrs = ["configuration.h"],
+    deps = [
+        "//blocks:plant",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_binary(
+    name = "pmsm_sim",
+    srcs = ["main.cpp"],
+    data = ["pmsm_config.json"],
+    deps = [
+        ":configuration",
+        ":drive",
+        ":rk4",
+        "//blocks:speed_control",
+        "@csv-parser//:csv-parser",
+    ],
+)
+
+cc_test(
+    name = "blocks_test",
+    srcs = ["blocks_test.cpp"],
+    deps = [
+        "//blocks:current_pi",
+        "//blocks:inverter",
+        "//blocks:plant",
+        "//blocks:svpwm",
+    ],
+)

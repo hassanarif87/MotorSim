@@ -1,0 +1,50 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "signals",
+    hdrs = ["signals.h"],
+    deps = ["@eigen//:eigen"],
+)
+
+cc_library(
+    name = "transforms",
+    hdrs = ["transforms.h"],
+    deps = [":signals"],
+)
+
+cc_library(
+    name = "plant",
+    hdrs = ["plant.h"],
+    deps = [":transforms"],
+)
+
+cc_library(
+    name = "current_feedback",
+    hdrs = ["current_feedback.h"],
+    deps = [":transforms"],
+)
+
+cc_library(
+    name = "current_pi",
+    hdrs = ["current_pi.h"],
+    deps = [":signals"],
+)
+
+cc_library(
+    name = "svpwm",
+    hdrs = ["svpwm.h"],
+    deps = [":transforms"],
+)
+
+cc_library(
+    name = "inverter",
+    hdrs = ["inverter.h"],
+    deps = [":signals"],
+)
+
+cc_library(
+    name = "speed_control",
+    hdrs = ["speed_control.h"],
+)

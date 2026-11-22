@@ -1,0 +1,31 @@
+{
+  "motor": {
+    "resistance_ohm": 0.15,
+    "inductance_h": 0.00025,
+    "pole_pairs": 4,
+    "back_emf_v_per_rad_s": 0.017089567968012923,
+    "torque_constant_nm_per_a": 0.01771066784611906,
+    "inertia_kg_m2": 0.000009597,
+    "viscous_friction_nm_per_rad_s": 0.0
+  },
+  "current_pi": {
+    "kp": 0.15,
+    "ki": 90.0,
+    "kaw": 600.0,
+    "id_reference_a": 0.0
+  },
+  "inverter": {
+    "bus_voltage_v": 24.0
+  },
+  "speed_control": {
+    "gain_a_per_rad_s": 0.1,
+    "max_current_a": 3.0,
+    "reference_rad_s": null
+  },
+  "simulation": {
+    "load_torque_nm": 0.0,
+    "step_s": 0.00001,
+    "steps": 40000,
+    "log_every_steps": 10
+  }
+}
