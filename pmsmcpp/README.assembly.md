@@ -57,7 +57,7 @@ add the connection.
 2. In `connections`, remove `["speed_control.omega", "pmsm.omega"]` and
    replace the route into the current PI with
    `["current_pi.iq_ref", "reference.value"]`.
-3. Run `bazel run //:pmsm_sim -- /tmp/fixed_current.csv my_config.json`.
+3. Run `bazel run //:pmsm_sim -- my_config.json /tmp/fixed_current.csv`.
    The default `iq_ref_a` column reads the PI input and should report 2 A.
 
 To create a block type that you can instantiate in JSON, see [Add a new C++ block type](README.md#add-a-new-c-block-type).

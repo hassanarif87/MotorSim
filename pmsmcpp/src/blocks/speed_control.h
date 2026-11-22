@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
-#include "graph/block_ports.h"
-#include "configuration.h"
+#include "src/graph/block_ports.h"
+#include "src/configuration.h"
 
 namespace pmsm {
 

@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <chrono>
 
-#include "configuration.h"
-#include "graph/block_ports.h"
+#include "src/configuration.h"
+#include "src/graph/block_ports.h"
 
 namespace pmsm::drive_blocks {
 

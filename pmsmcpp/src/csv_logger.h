@@ -6,8 +6,8 @@
 
 #include <csv.hpp>
 
-#include "drive/drive.h"
-#include "simulation_executor.h"
+#include "src/drive/drive.h"
+#include "src/simulation_executor.h"
 
 namespace pmsm {
 

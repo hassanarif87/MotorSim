@@ -11,13 +11,13 @@ with `bazel test //test/...`.
 | File | Responsibility |
 | --- | --- |
 | [`main.cpp`](main.cpp) | Loads the config, constructs the drive, and registers the CSV logger. |
-| [`configuration.h`](configuration.h) | Uses reflect-cpp to load JSON into typed simulation and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
-| [`drive/drive.h`](drive/drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
-| [`drive/block_catalog.cpp`](drive/block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
-| [`graph/block_ports.h`](graph/block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
-| [`graph/block_graph.h`](graph/block_graph.h) | Uses C++26 reflection to discover named ports, validate connections, and resolve CSV readers. |
+| [`configuration.h`](src/configuration.h) | Uses reflect-cpp to load JSON into typed simulation and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
+| [`drive/drive.h`](src/drive/drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
+| [`drive/block_catalog.cpp`](src/drive/block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
+| [`graph/block_ports.h`](src/graph/block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
+| [`graph/block_graph.h`](src/graph/block_graph.h) | Uses C++26 reflection to discover named ports, validate connections, and resolve CSV readers. |
 | [`blocks/`](blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
-| [`simulation_executor.h`](simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
+| [`simulation_executor.h`](src/simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
 
 Each factory reads its block's parameter object into a local C++ struct.
 The graph's name maps exist during drive construction. Once validation
@@ -63,18 +63,18 @@ flowchart LR
    `advance(dt)` for that interval and then moves its simulation clock forward.
    The clock advances from model events and steps without consulting wall time.
 4. The motor reads its phase-voltage inputs once per interval.
-   [`ContinuousPmsm`](blocks/continuous_pmsm.h) runs the four RK4 stages with
+   [`ContinuousPmsm`](src/blocks/continuous_pmsm.h) runs the four RK4 stages with
    those held voltages and commits the accepted state. It computes phase
    currents, speed, and position before the next digital callbacks run.
 
-[`PmsmPlant`](blocks/continuous_pmsm.h) provides the motor equations. The digital
+[`PmsmPlant`](src/blocks/continuous_pmsm.h) provides the motor equations. The digital
 current PI advances its own integrators once per current tick. SVPWM and the
 averaged inverter publish duty cycles and voltages that remain available
 until their next ticks.
 
 ## Results
 
-The [CSV logger](csv_logger.h) reads the configured ports on its own clock. It records
+The [CSV logger](src/csv_logger.h) reads the configured ports on its own clock. It records
 `time_s` from the executor, then the latest values of the selected inputs
 and outputs. It samples at zero and at the final time, including a final row
 when the end falls between logging ticks. The

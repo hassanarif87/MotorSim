@@ -1,0 +1,22 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "drive",
+    srcs = ["block_catalog.cpp"],
+    hdrs = ["drive.h"],
+    visibility = ["//:__pkg__", "//src:__pkg__"],
+    copts = ["-freflection"],
+    deps = [
+        "//src:configuration",
+        "//src/blocks:constant_current",
+        "//src/blocks:constant_torque",
+        "//src/blocks:continuous_pmsm",
+        "//src/blocks:current_feedback",
+        "//src/blocks:current_pi",
+        "//src/blocks:inverter",
+        "//src/blocks:simplefoc",
+        "//src/blocks:speed_control",
+        "//src/blocks:svpwm",
+        "//src/graph:block_graph",
+    ],
+)

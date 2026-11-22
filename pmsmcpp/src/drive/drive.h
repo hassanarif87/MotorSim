@@ -6,8 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "graph/block_graph.h"
-#include "configuration.h"
+#include "src/graph/block_graph.h"
+#include "src/configuration.h"
 
 namespace pmsm {
 

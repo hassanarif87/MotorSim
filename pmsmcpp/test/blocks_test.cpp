@@ -3,10 +3,10 @@
 #include <stdexcept>
 #include <string>
 
-#include "blocks/current_pi.h"
-#include "blocks/inverter.h"
-#include "blocks/continuous_pmsm.h"
-#include "blocks/svpwm.h"
+#include "src/blocks/current_pi.h"
+#include "src/blocks/inverter.h"
+#include "src/blocks/continuous_pmsm.h"
+#include "src/blocks/svpwm.h"
 
 namespace {
 

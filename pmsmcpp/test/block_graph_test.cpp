@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <string_view>
 
-#include "graph/block_graph.h"
+#include "src/graph/block_graph.h"
 
 namespace {
 

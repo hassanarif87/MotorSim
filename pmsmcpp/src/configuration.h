@@ -15,8 +15,8 @@
 #include <rfl/comparisons.hpp>
 #include <rfl/from_generic.hpp>
 
-#include "graph/connections.h"
-#include "simulation_executor.h"
+#include "src/graph/connections.h"
+#include "src/simulation_executor.h"
 
 namespace pmsm {
 

@@ -88,7 +88,7 @@ def main():
                 for pid in pids:
                     pid[args.parameter] = value
                 trial_config.write_text(json.dumps(config))
-                subprocess.run([str(args.binary.resolve()), str(trial_csv), str(trial_config)],
+                subprocess.run([str(args.binary.resolve()), str(trial_config), str(trial_csv)],
                                check=True, stdout=subprocess.DEVNULL)
                 results.append((value, *step_metrics(trial_csv, signal, args.target)))
     except (OSError, ValueError, KeyError, StopIteration, subprocess.CalledProcessError) as error:

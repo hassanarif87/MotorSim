@@ -1,0 +1,49 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "simulation_executor",
+    hdrs = ["simulation_executor.h"],
+    visibility = [
+        "//src/blocks:__pkg__",
+        "//test:__pkg__",
+        "//:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "rk4",
+    hdrs = ["rk4.h"],
+    visibility = [
+        "//src/blocks:__pkg__",
+        "//test:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "configuration",
+    srcs = ["configuration.cpp"],
+    hdrs = ["configuration.h"],
+    visibility = [
+        "//src/blocks:__pkg__",
+        "//src/drive:__pkg__",
+        "//:__pkg__",
+    ],
+    deps = [
+        ":simulation_executor",
+        "//src/graph:connections",
+        "@reflect-cpp",
+    ],
+)
+
+cc_library(
+    name = "csv_logger",
+    srcs = ["csv_logger.cpp"],
+    hdrs = ["csv_logger.h"],
+    visibility = ["//:__pkg__"],
+    copts = ["-freflection"],
+    deps = [
+        ":simulation_executor",
+        "//src/drive",
+        "@csv-parser//:csv-parser",
+    ],
+)

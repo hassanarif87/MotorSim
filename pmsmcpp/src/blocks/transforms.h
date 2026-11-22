@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include "blocks/signals.h"
+#include "src/blocks/signals.h"
 
 namespace pmsm {
 

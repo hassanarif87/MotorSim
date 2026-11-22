@@ -6,10 +6,10 @@
 #include <stdexcept>
 #include <string>
 
-#include "configuration.h"
-#include "csv_logger.h"
-#include "drive/drive.h"
-#include "simulation_executor.h"
+#include "src/configuration.h"
+#include "src/csv_logger.h"
+#include "src/drive/drive.h"
+#include "src/simulation_executor.h"
 
 namespace {
 
@@ -46,15 +46,15 @@ void simulate(const std::filesystem::path& path, const pmsm::Configuration& conf
 }  // namespace
 
 int main(int argc, char** argv) {
-    if (argc > 3) {
-        std::cerr << "Usage: pmsm_sim [output.csv [config.json]]\n";
+    if (argc < 2 || argc > 3) {
+        std::cerr << "Usage: pmsm_sim config.json [output.csv]\n";
         return 2;
     }
 
     const char* workspace = std::getenv("BUILD_WORKSPACE_DIRECTORY");
     const std::filesystem::path base = workspace ? workspace : ".";
-    const auto output_path = base / (argc >= 2 ? argv[1] : "pmsm_results.csv");
-    const auto config_path = base / (argc == 3 ? argv[2] : "pmsm_config.json");
+    const auto config_path = base / argv[1];
+    const auto output_path = base / (argc == 3 ? argv[2] : "pmsm_results.csv");
     pmsm::Configuration config;
     try {
         config = pmsm::load_configuration(config_path);

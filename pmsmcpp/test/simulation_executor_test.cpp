@@ -3,8 +3,8 @@
 #include <iostream>
 #include <vector>
 
-#include "rk4.h"
-#include "simulation_executor.h"
+#include "src/rk4.h"
+#include "src/simulation_executor.h"
 
 namespace {
 

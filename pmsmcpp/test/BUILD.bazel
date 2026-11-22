@@ -5,10 +5,10 @@ cc_test(
     size = "small",
     srcs = ["blocks_test.cpp"],
     deps = [
-        "//blocks:continuous_pmsm",
-        "//blocks:current_pi",
-        "//blocks:inverter",
-        "//blocks:svpwm",
+        "//src/blocks:continuous_pmsm",
+        "//src/blocks:current_pi",
+        "//src/blocks:inverter",
+        "//src/blocks:svpwm",
     ],
 )
 
@@ -17,8 +17,8 @@ cc_test(
     size = "small",
     srcs = ["simulation_executor_test.cpp"],
     deps = [
-        "//:rk4",
-        "//:simulation_executor",
+        "//src:rk4",
+        "//src:simulation_executor",
     ],
 )
 
@@ -27,5 +27,5 @@ cc_test(
     size = "small",
     srcs = ["block_graph_test.cpp"],
     copts = ["-freflection"],
-    deps = ["//graph:block_graph"],
+    deps = ["//src/graph:block_graph"],
 )

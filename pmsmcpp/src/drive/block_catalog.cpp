@@ -1,14 +1,14 @@
-#include "drive/drive.h"
+#include "src/drive/drive.h"
 
-#include "blocks/constant_current.h"
-#include "blocks/constant_torque.h"
-#include "blocks/continuous_pmsm.h"
-#include "blocks/current_feedback.h"
-#include "blocks/current_pi.h"
-#include "blocks/inverter.h"
-#include "blocks/simplefoc.h"
-#include "blocks/speed_control.h"
-#include "blocks/svpwm.h"
+#include "src/blocks/constant_current.h"
+#include "src/blocks/constant_torque.h"
+#include "src/blocks/continuous_pmsm.h"
+#include "src/blocks/current_feedback.h"
+#include "src/blocks/current_pi.h"
+#include "src/blocks/inverter.h"
+#include "src/blocks/simplefoc.h"
+#include "src/blocks/speed_control.h"
+#include "src/blocks/svpwm.h"
 
 namespace pmsm {
 

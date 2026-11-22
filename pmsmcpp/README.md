@@ -9,17 +9,19 @@ Bazel 8.4.0.
 cd pmsmcpp
 bazel build //:pmsm_sim
 bazel test //test/...
-bazel run //:pmsm_sim
+bazel run //:pmsm_sim -- pmsm_config.json
 ```
 
-The example reads `pmsm_config.json` and saves `pmsm_results.csv` in this
-directory. Pass an output path and, optionally, a configuration path after
-`--`. Relative paths are resolved from the Bazel workspace root.
+Pass the JSON configuration path first. The optional second argument sets the
+CSV output path, which defaults to `pmsm_results.csv`. Relative paths are resolved
+from the Bazel workspace root.
 
 ```sh
-bazel run //:pmsm_sim -- /tmp/my_run.csv
-bazel run //:pmsm_sim -- /tmp/my_run.csv my_config.json
+bazel run //:pmsm_sim -- my_config.json /tmp/my_run.csv
 ```
+
+The simulator implementation lives in `src/`, with `main.cpp` at the project root
+and tests in `test/`.
 
 ## Guides
 
@@ -29,7 +31,7 @@ bazel run //:pmsm_sim -- /tmp/my_run.csv my_config.json
 ## Add a new C++ block type
 
 This example adds a periodic current gain that can sit between the speed
-controller and current PI. Save it as `blocks/current_gain.h`. The factory expects a constructor taking `const BlockSpec&` and public
+controller and current PI. Save it as `src/blocks/current_gain.h`. The factory expects a constructor taking `const BlockSpec&` and public
 members named `inputs` and `outputs`. The graph builder discovers their public
 fields through C++26 reflection. Each field name is its JSON port name.
 For parameters, reflect-cpp maps JSON directly to the struct and validates
@@ -40,8 +42,8 @@ already represents the JSON fields.
 ```cpp
 #pragma once
 
-#include "graph/block_ports.h"
-#include "configuration.h"
+#include "src/graph/block_ports.h"
+#include "src/configuration.h"
 
 namespace pmsm::drive_blocks {
 
@@ -74,23 +76,23 @@ private:
 }  // namespace pmsm::drive_blocks
 ```
 
-Add this library to [`blocks/BUILD.bazel`](blocks/BUILD.bazel).
+Add this library to [`src/blocks/BUILD.bazel`](src/blocks/BUILD.bazel).
 
 ```python
 cc_library(
     name = "current_gain",
     hdrs = ["current_gain.h"],
     deps = [
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
 ```
 
-Add `//blocks:current_gain` to the `drive` target's dependencies in
-[`drive/BUILD.bazel`](drive/BUILD.bazel).
+Add `//src/blocks:current_gain` to the `drive` target's dependencies in
+[`src/drive/BUILD.bazel`](src/drive/BUILD.bazel).
 
-In [`drive/block_catalog.cpp`](drive/block_catalog.cpp), include `blocks/current_gain.h`
+In [`src/drive/block_catalog.cpp`](src/drive/block_catalog.cpp), include `src/blocks/current_gain.h`
 and append `X("current_gain", CurrentGain)` to `PMSM_BLOCK_TYPES`. Add a
 trailing backslash to the previous entry. The factory checks the block
 contract at compile time and registers the callback automatically. Use
@@ -128,7 +130,7 @@ starts at 1.5 A. Rebuild and check the run with the commands below.
 
 ```sh
 bazel test //test/...
-bazel run //:pmsm_sim -- /tmp/current_gain.csv my_config.json
+bazel run //:pmsm_sim -- my_config.json /tmp/current_gain.csv
 ```
 
 The drive constructs blocks at stable addresses and validates the graph
@@ -153,7 +155,7 @@ feedback, dq voltage commands, and phase duties.
 
 ```sh
 bazel build //:pmsm_sim
-bazel run //:pmsm_sim -- /tmp/simplefoc.csv simplefoc_config.json
+bazel run //:pmsm_sim -- simplefoc_config.json /tmp/simplefoc.csv
 python3 tune_simplefoc.py current P 0.15 0.25 0.4 --target 1
 python3 tune_simplefoc.py velocity P 0.04 0.08 0.16 --target 100
 ```

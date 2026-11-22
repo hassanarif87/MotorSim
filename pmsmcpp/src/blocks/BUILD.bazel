@@ -19,10 +19,10 @@ cc_library(
     hdrs = ["continuous_pmsm.h"],
     deps = [
         ":transforms",
-        "//graph:block_ports",
-        "//:configuration",
-        "//:rk4",
-        "//:simulation_executor",
+        "//src/graph:block_ports",
+        "//src:configuration",
+        "//src:rk4",
+        "//src:simulation_executor",
     ],
 )
 
@@ -31,8 +31,8 @@ cc_library(
     hdrs = ["current_feedback.h"],
     deps = [
         ":transforms",
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
 
@@ -40,8 +40,8 @@ cc_library(
     name = "current_pi",
     hdrs = ["current_pi.h"],
     deps = [
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
         "@eigen//:eigen",
     ],
 )
@@ -51,8 +51,8 @@ cc_library(
     hdrs = ["svpwm.h"],
     deps = [
         ":transforms",
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
 
@@ -61,8 +61,8 @@ cc_library(
     hdrs = ["inverter.h"],
     deps = [
         ":signals",
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
 
@@ -70,8 +70,8 @@ cc_library(
     name = "speed_control",
     hdrs = ["speed_control.h"],
     deps = [
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
 
@@ -79,8 +79,8 @@ cc_library(
     name = "constant_current",
     hdrs = ["constant_current.h"],
     deps = [
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
 
@@ -88,8 +88,8 @@ cc_library(
     name = "constant_torque",
     hdrs = ["constant_torque.h"],
     deps = [
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
 
@@ -97,7 +97,7 @@ cc_library(
     name = "simplefoc",
     hdrs = ["simplefoc.h"],
     deps = [
-        "//graph:block_ports",
-        "//:configuration",
+        "//src/graph:block_ports",
+        "//src:configuration",
     ],
 )
