@@ -1,7 +1,7 @@
 {
   "simulation": {
-    "step_s": 1e-07,
-    "steps": 400000,
+    "tick_rate_hz": 10000000,
+    "duration_s": 0.04,
     "log_rate_hz": 20000
   },
   "blocks": [

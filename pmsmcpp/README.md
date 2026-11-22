@@ -140,8 +140,8 @@ directly. Each block keeps its state in its own instance.
 ## Default schedule
 
 The example starts the PMSM from rest and advances it for 0.4 s using RK4
-with a maximum step of 10 µs. The executor shortens steps to land on clock
-events. The speed loop ticks every 1 ms, feedback and current PI every 50 µs,
+at a base frequency of 1 MHz, with one integration step per 1 µs tick.
+The speed loop ticks every 1 ms, feedback and current PI every 50 µs,
 SVPWM and inverter every 50 µs, and logging every 100 µs. The PI advances its
 integrators once per tick. The inverter holds its phase voltages between
 updates. The CSV records both endpoints and the latest published port values.

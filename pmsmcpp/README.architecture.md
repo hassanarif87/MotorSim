@@ -54,14 +54,14 @@ flowchart LR
 
 1. The motor publishes its initial outputs during construction. All periodic
    callbacks are first due at simulated time zero.
-2. At each timestamp, the executor runs due callbacks in ascending priority,
+2. At each integer tick, the executor runs a callback when the tick index
+   modulo its configured stride is zero. It runs due callbacks in ascending priority,
    using registration order for ties. With the default config, coincident
    ticks run speed control, feedback, current PI, SVPWM, inverter, then CSV
    logging.
-3. The executor selects the next timestamp from the maximum integration step,
-   the next scheduled callback, and the end time. It calls the motor's
-   `advance(dt)` for that interval and then moves its simulation clock forward.
-   The clock advances from model events and steps without consulting wall time.
+3. The executor advances the motor by one fixed interval between ticks.
+   If the requested duration falls between ticks, it advances the motor
+   through the remaining fraction of the interval after the last tick.
 4. The motor reads its phase-voltage inputs once per interval.
    [`ContinuousPmsm`](src/blocks/continuous_pmsm.h) runs the four RK4 stages with
    those held voltages and commits the accepted state. It computes phase

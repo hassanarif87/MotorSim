@@ -9,7 +9,7 @@ following sections.
 
 | Section | What it controls |
 | --- | --- |
-| `simulation` | Maximum RK4 step in seconds (`step_s`), simulation length (`steps × step_s`), and CSV rate (`log_rate_hz`) |
+| `simulation` | Base tick frequency (`tick_rate_hz`), simulation length in seconds (`duration_s`), and CSV rate (`log_rate_hz`) |
 | `blocks` | Instances, their types, parameters, and digital clocks |
 | `connections` | Signal routes as `[destination, source]` pairs |
 | `log_columns` | CSV columns as `[header, port]` pairs |
@@ -17,9 +17,13 @@ following sections.
 Each instance has a unique `name` without dots and a registered `type`. Put
 its settings in `parameters`. Periodic blocks require `rate_hz` and accept
 an optional `priority` (default 0). Lower priorities run first at coincident
-ticks, with JSON order breaking ties. The rate must be a positive integer
-that divides 1,000,000,000 exactly. The executor supports one continuous
-block and up to 15 periodic blocks, reserving one slot for CSV logging.
+ticks, with JSON order breaking ties. Frequencies must be positive integers
+that divide 1,000,000,000 exactly. Each block and CSV rate must also divide
+`tick_rate_hz` exactly. For example, 20,000 Hz runs every 50 ticks at a
+base frequency of 1,000,000 Hz. Older configs can set the tick interval with
+`step_s` and the duration with `steps`. Their block and logging periods must
+span whole simulation ticks. The executor supports one continuous block
+and up to 15 periodic blocks, reserving one slot for CSV logging.
 
 A connection names ports as `instance.port`. For example,
 `["pmsm.va", "inverter.va"]` feeds the inverter's phase-A voltage into the

@@ -18,9 +18,8 @@ using Duration = Executor::Duration;
 
 void simulate(const std::filesystem::path& path, const pmsm::Configuration& config) {
     const auto& sim = config.simulation;
-    const auto max_step = sim.integration_step();
     const Duration log_period = sim.logging_period();
-    const auto end = max_step * sim.steps.get();
+    const auto end = sim.duration();
     pmsm::Drive drive(config);
     auto& executor = drive.executor();
 

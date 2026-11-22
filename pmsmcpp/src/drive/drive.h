@@ -14,10 +14,10 @@ namespace pmsm {
 /// Owns block instances and schedules them after resolving the configured model.
 class Drive {
 public:
-    explicit Drive(const Configuration& config) : executor_(config.simulation.integration_step()) {
+    explicit Drive(const Configuration& config) : executor_(config.simulation.tick_interval()) {
         const auto periodic_count = std::count_if(config.blocks.begin(), config.blocks.end(),
             [](const BlockSpec& spec) { return spec.period().has_value(); });
-        if (static_cast<std::size_t>(periodic_count) >= SimulationExecutor::max_updates) {
+        if (static_cast<std::size_t>(periodic_count) >= SimulationExecutor::max_periodic_blocks) {
             throw std::invalid_argument("Too many periodic blocks with one executor slot reserved for CSV");
         }
 

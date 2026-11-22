@@ -65,19 +65,26 @@ static_assert(!pmsm::AdvanceBlock<WrongSignatures, Executor::Duration>);
 }  // namespace
 
 int main() {
-    Executor executor(4ns);
+    Executor executor(2ns);
     Trace trace{executor, {}, {}, {}};
     CurrentTick current{trace};
     executor.register_block(trace);
-    executor.register_update(7ns, 2, Executor::UpdateCallback::bind<&Trace::pwm>(trace));
-    executor.register_block(current, 5ns, 1);
-    executor.register_update(20ns, 0, Executor::UpdateCallback::bind<&Trace::speed>(trace));
-    executor.run(12ns);
+    try {
+        executor.register_block(current, 5ns, 1);
+        std::cerr << "Expected an unaligned period to be rejected\n";
+        return 1;
+    } catch (const std::invalid_argument&) {
+    }
+    executor.register_tick(6ns, 2, Executor::TickCallback::bind<&Trace::pwm>(trace));
+    executor.register_block(current, 4ns, 1);
+    executor.register_tick(20ns, 0, Executor::TickCallback::bind<&Trace::speed>(trace));
+    executor.run(13ns);
 
-    if (trace.intervals != std::vector<Executor::Duration>{4ns, 1ns, 2ns, 3ns, 2ns} ||
-        trace.current_ticks != std::vector<Executor::Duration>{0ns, 5ns, 10ns} ||
+    if (trace.intervals != std::vector<Executor::Duration>{2ns, 2ns, 2ns, 2ns, 2ns, 2ns, 1ns} ||
+        trace.current_ticks != std::vector<Executor::Duration>{0ns, 4ns, 8ns, 12ns} ||
         trace.events_at_zero != std::vector<char>{'s', 'c', 'p'} ||
-        trace.stages != 20 || !trace.output_ready || std::abs(trace.state - 17.0) > 1e-12) {
+        executor.now() != 13ns || trace.stages != 28 ||
+        !trace.output_ready || std::abs(trace.state - 21.0) > 1e-12) {
         std::cerr << "Unexpected callback order, integration steps, or held-input result\n";
         return 1;
     }

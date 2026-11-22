@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -49,13 +48,13 @@ class SimulationExecutor {
 public:
     using Duration = std::chrono::nanoseconds;
     using AdvanceCallback = Delegate<void(Duration)>;
-    using UpdateCallback = Delegate<void()>;
+    using TickCallback = Delegate<void()>;
 
-    static constexpr std::size_t max_updates = 16;
+    static constexpr std::size_t max_periodic_blocks = 16;
 
-    explicit SimulationExecutor(Duration max_step) : max_step_(max_step) {
-        if (max_step_ <= Duration::zero()) {
-            throw std::invalid_argument("Maximum integration step must be positive");
+    explicit SimulationExecutor(Duration tick_interval) : tick_interval_(tick_interval) {
+        if (tick_interval_ <= Duration::zero()) {
+            throw std::invalid_argument("Simulation tick interval must be positive");
         }
     }
 
@@ -63,42 +62,40 @@ public:
     template <TickBlock Block>
         requires (!AdvanceBlock<Block, Duration>)
     void register_block(Block& block, Duration period, int priority) {
-        register_update(period, priority,
-            UpdateCallback::bind<static_cast<void (Block::*)()>(&Block::tick)>(block));
+        register_tick(period, priority,
+            TickCallback::bind<static_cast<void (Block::*)()>(&Block::tick)>(block));
     }
 
     /// Bind a block's continuous callback directly from its member signature.
     template <typename Block>
         requires AdvanceBlock<Block, Duration> && (!TickBlock<Block>)
     void register_block(Block& block) {
-        register_continuous(
-            AdvanceCallback::bind<static_cast<void (Block::*)(Duration)>(&Block::advance)>(block));
+        if (started_ || advance_) {
+            throw std::logic_error("Expected one continuous block registered before run");
+        }
+        advance_ = AdvanceCallback::bind<static_cast<void (Block::*)(Duration)>(&Block::advance)>(block);
     }
 
     bool has_continuous_block() const { return static_cast<bool>(advance_); }
 
-    void register_continuous(AdvanceCallback callback) {
-        if (started_ || advance_ || !callback) {
-            throw std::logic_error("Expected one continuous registration before run");
-        }
-        advance_ = callback;
-    }
-
-    void register_update(Duration period, int priority, UpdateCallback callback) {
+    void register_tick(Duration period, int priority, TickCallback callback) {
         if (started_ || !callback || period <= Duration::zero()) {
             throw std::invalid_argument("Expected a callback and positive period before run");
         }
-        if (update_count_ == updates_.size()) {
-            throw std::length_error("Too many periodic updates");
+        if (period % tick_interval_ != Duration::zero()) {
+            throw std::invalid_argument("Periodic block must span a whole number of simulation ticks");
+        }
+        if (periodic_count_ == periodic_blocks_.size()) {
+            throw std::length_error("Too many periodic blocks");
         }
 
         // Preserve registration order for equal priorities.
-        auto index = update_count_++;
-        while (index > 0 && updates_[index - 1].priority > priority) {
-            updates_[index] = updates_[index - 1];
+        auto index = periodic_count_++;
+        while (index > 0 && periodic_blocks_[index - 1].priority > priority) {
+            periodic_blocks_[index] = periodic_blocks_[index - 1];
             --index;
         }
-        updates_[index] = {period, priority, callback, Duration::zero(), true};
+        periodic_blocks_[index] = {period / tick_interval_, priority, callback};
     }
 
     Duration now() const { return now_; }
@@ -108,43 +105,43 @@ public:
             throw std::logic_error("Expected a single run with a continuous callback and valid end time");
         }
         started_ = true;
-        for (;;) {
-            auto next = now_ + std::min(max_step_, end - now_);
-            for (std::size_t i = 0; i < update_count_; ++i) {
-                auto& update = updates_[i];
-                if (update.pending && update.next == now_) {
-                    update.callback();
-                    update.pending = update.period <= end - now_;
-                    if (update.pending) {
-                        update.next += update.period;
-                    }
-                }
-                if (update.pending) {
-                    next = std::min(next, update.next);
-                }
-            }
-            if (now_ == end) {
-                return;
-            }
-            advance_(next - now_);
-            now_ = next;
+        const auto last_tick_index = end / tick_interval_;
+        for (Duration::rep tick_index = 0; tick_index < last_tick_index; ++tick_index) {
+            tick_due_blocks(tick_index);
+            advance_(tick_interval_);
+            now_ += tick_interval_;
+        }
+        // Run callbacks at the last tick boundary, even when it is the end time.
+        tick_due_blocks(last_tick_index);
+
+        const auto remainder = end % tick_interval_;
+        if (remainder != Duration::zero()) {
+            advance_(remainder);
+            now_ = end;
         }
     }
 
 private:
-    struct Update {
-        Duration period;
+    void tick_due_blocks(Duration::rep tick_index) const {
+        for (std::size_t i = 0; i < periodic_count_; ++i) {
+            const auto& block = periodic_blocks_[i];
+            if (tick_index % block.tick_stride == 0) {
+                block.tick();
+            }
+        }
+    }
+
+    struct PeriodicBlock {
+        Duration::rep tick_stride;
         int priority;
-        UpdateCallback callback;
-        Duration next;
-        bool pending;
+        TickCallback tick;
     };
 
-    Duration max_step_;
+    Duration tick_interval_;
     Duration now_{0};
     AdvanceCallback advance_;
-    std::array<Update, max_updates> updates_{};
-    std::size_t update_count_ = 0;
+    std::array<PeriodicBlock, max_periodic_blocks> periodic_blocks_{};
+    std::size_t periodic_count_ = 0;
     bool started_ = false;
 };
 

@@ -87,13 +87,16 @@ struct BlockSpec {
 };
 
 struct SimulationConfig {
-    PositiveReal step_s{1e-5};
-    PositiveInt steps{1};
+    std::optional<RateHz> tick_rate_hz;
+    std::optional<PositiveReal> duration_s;
+    std::optional<PositiveReal> step_s;
+    std::optional<PositiveInt> steps;
     std::optional<PositiveInt> log_every_steps;
     std::optional<RateHz> log_rate_hz;
     std::optional<PositiveInt> log_period_ns;
 
-    SimulationExecutor::Duration integration_step() const;
+    SimulationExecutor::Duration tick_interval() const;
+    SimulationExecutor::Duration duration() const;
     SimulationExecutor::Duration logging_period() const;
 };
 
