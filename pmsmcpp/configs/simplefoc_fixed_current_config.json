@@ -61,7 +61,11 @@
         },
         "LPF_current_d_Tf": 0.0002,
         "LPF_current_q_Tf": 0.0002,
-        "voltage_limit": 12.0
+        "voltage_limit": 12.0,
+        "feedforward_enabled": true,
+        "pole_pairs": 4,
+        "inductance_h": 0.00025,
+        "back_emf_v_per_rad_s": 0.017089567968012923
       }
     },
     {
@@ -94,6 +98,7 @@
     ["current_pi.iq_ref", "current_reference.value"],
     ["current_pi.id", "current_feedback.id"],
     ["current_pi.iq", "current_feedback.iq"],
+    ["current_pi.omega", "pmsm.omega"],
     ["svpwm.vd", "current_pi.vd"],
     ["svpwm.vq", "current_pi.vq"],
     ["svpwm.theta", "pmsm.theta"],

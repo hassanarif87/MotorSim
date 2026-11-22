@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <optional>
 
 #include "src/configuration.h"
 #include "src/graph/block_ports.h"
@@ -19,11 +20,11 @@ public:
     SimpleFocPid(SimpleFocPidSettings settings, double limit, double period)
         : settings_(settings), limit_(limit), period_(period) {}
 
-    double update(double error) {
+    double update(double error, double feedforward = 0.0) {
         integral_ += (error + last_error_) * (settings_.I.get() * period_ / 2);
         integral_ = std::clamp(integral_, -limit_, limit_);
         const double derivative = (error - last_error_) * settings_.D.get() / period_;
-        const double requested = settings_.P.get() * error + integral_ + derivative;
+        const double requested = settings_.P.get() * error + integral_ + derivative + feedforward;
         const double limited = std::clamp(requested, -limit_, limit_);
         const double max_change = settings_.output_ramp.get() * period_;
         last_output_ = max_change > 0
@@ -93,6 +94,10 @@ class SimpleFocCurrent {
         SimpleFocPidSettings PID_current_d, PID_current_q;
         NonnegativeReal LPF_current_d_Tf, LPF_current_q_Tf;
         PositiveReal voltage_limit;
+        std::optional<bool> feedforward_enabled;
+        PositiveInt pole_pairs;
+        PositiveReal inductance_h;
+        PositiveReal back_emf_v_per_rad_s;
     };
 
 public:
@@ -101,14 +106,22 @@ public:
                            std::chrono::duration<double>(spec.period().value()).count()) {}
 
     void tick() {
-        outputs.id_filtered = filter_d_.update(inputs.id.read());
-        outputs.iq_filtered = filter_q_.update(inputs.iq.read());
-        outputs.vd = pid_d_.update(-outputs.id_filtered);
+        const double id = inputs.id.read();
+        const double iq = inputs.iq.read();
+        const double omega = feedforward_enabled_ ? static_cast<double>(inputs.omega.read()) : 0.0;
+        const double coupling = electrical_inductance_ * omega;
+        outputs.id_filtered = filter_d_.update(id);
+        outputs.iq_filtered = filter_q_.update(iq);
         outputs.iq_applied = inputs.iq_ref.read();
-        outputs.vq = pid_q_.update(outputs.iq_applied - outputs.iq_filtered);
+        outputs.vd = pid_d_.update(-outputs.id_filtered, -coupling * iq);
+        outputs.vq = pid_q_.update(outputs.iq_applied - outputs.iq_filtered,
+                                   coupling * id + back_emf_constant_ * omega);
     }
 
-    struct Inputs { InputPort<Current> iq_ref, id, iq; } inputs;
+    struct Inputs {
+        InputPort<Current> iq_ref, id, iq;
+        InputPort<Speed> omega;
+    } inputs;
     struct Outputs {
         Current id_filtered, iq_filtered, iq_applied;
         Voltage vd, vq;
@@ -119,10 +132,15 @@ private:
         : pid_d_(p.PID_current_d, p.voltage_limit.get(), period),
           pid_q_(p.PID_current_q, p.voltage_limit.get(), period),
           filter_d_(p.LPF_current_d_Tf.get(), period),
-          filter_q_(p.LPF_current_q_Tf.get(), period) {}
+          filter_q_(p.LPF_current_q_Tf.get(), period),
+          feedforward_enabled_(p.feedforward_enabled.value_or(true)),
+          electrical_inductance_(p.pole_pairs.get() * p.inductance_h.get()),
+          back_emf_constant_(p.back_emf_v_per_rad_s.get()) {}
 
     SimpleFocPid pid_d_, pid_q_;
     SimpleFocFilter filter_d_, filter_q_;
+    bool feedforward_enabled_;
+    double electrical_inductance_, back_emf_constant_;
 };
 
 }  // namespace pmsm::drive_blocks

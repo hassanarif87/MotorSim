@@ -42,7 +42,7 @@ def main():
     parser.add_argument("parameter", choices=("P", "I", "D", "output_ramp"))
     parser.add_argument("values", type=float, nargs="+")
     parser.add_argument("--target", required=True, type=float, help="Step in A or rad/s")
-    parser.add_argument("--config", type=Path, default=here / "simplefoc_config.json")
+    parser.add_argument("--config", type=Path, default=here / "configs/simplefoc_config.json")
     parser.add_argument("--binary", type=Path, default=here / "bazel-bin/pmsm_sim")
     args = parser.parse_args()
     if not math.isfinite(args.target) or args.target == 0:

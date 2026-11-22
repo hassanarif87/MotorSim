@@ -149,13 +149,13 @@ updates. The CSV records both endpoints and the latest published port values.
 ## Tune SimpleFOC current and velocity loops
 
 From `pmsmcpp`, build the simulator and run the
-[SimpleFOC profile](simplefoc_config.json) for a 100 rad/s velocity step.
+[SimpleFOC profile](configs/simplefoc_config.json) for a 100 rad/s velocity step.
 The output includes current and velocity references, raw and filtered
 feedback, dq voltage commands, and phase duties.
 
 ```sh
 bazel build //:pmsm_sim
-bazel run //:pmsm_sim -- simplefoc_config.json /tmp/simplefoc.csv
+bazel run //:pmsm_sim -- configs/simplefoc_config.json /tmp/simplefoc.csv
 python3 tune_simplefoc.py current P 0.15 0.25 0.4 --target 1
 python3 tune_simplefoc.py velocity P 0.04 0.08 0.16 --target 100
 ```
@@ -171,6 +171,13 @@ through the end of the run. The tail error averages the absolute error
 over the last 10% of the run. Peak current is the largest sampled
 absolute value across the two dq axes. Use `--config` to sweep a copy of
 the profile with different motor data, load, or duration.
+
+The current controller uses measured mechanical speed and dq currents to
+compensate for back-EMF and cross-axis coupling. Match its `pole_pairs`,
+`inductance_h`, and `back_emf_v_per_rad_s` to the plant. The voltage limit
+and output ramp apply to the combined PID and feedforward command.
+Set `feedforward_enabled` to `false` in the current controller's parameters
+to disable both compensation terms. It defaults to `true`.
 
 The profile uses a fixed-rate model of SimpleFOC v2.3.5 with
 `TorqueControlType::foc_current`, `MotionControlType::velocity`, and
