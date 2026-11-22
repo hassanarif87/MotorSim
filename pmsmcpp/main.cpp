@@ -1,4 +1,3 @@
-#include <charconv>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -6,67 +5,16 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
-#include <vector>
-
-#include <csv.hpp>
 
 #include "configuration.h"
-#include "drive.h"
+#include "csv_logger.h"
+#include "drive/drive.h"
 #include "simulation_executor.h"
 
 namespace {
 
 using Executor = pmsm::SimulationExecutor;
 using Duration = Executor::Duration;
-
-// Give the CSV library a round-trippable field representation.
-struct CsvNumber {
-    CsvNumber(double field) : value(field) {}
-
-    double value;
-
-    operator std::string() const {
-        char buffer[64];
-        const auto result = std::to_chars(buffer, buffer + sizeof(buffer), value,
-            std::chars_format::general, std::numeric_limits<double>::max_digits10);
-        if (result.ec != std::errc{}) {
-            throw std::runtime_error("Could not format CSV number");
-        }
-        return {buffer, result.ptr};
-    }
-};
-
-class CsvLogger {
-public:
-    CsvLogger(std::ostream& output, const Executor& executor,
-              const std::vector<pmsm::Drive::Column>& columns)
-        : output_(output), writer_(output), executor_(executor), columns_(columns),
-          row_(columns.size() + 1, CsvNumber(0.0)) {
-        std::vector<std::string> header{"time_s"};
-        for (const auto& column : columns_) {
-            header.push_back(column.header);
-        }
-        writer_ << header;
-    }
-
-    void tick() {
-        row_[0] = std::chrono::duration<double>(executor_.now()).count();
-        for (std::size_t i = 0; i < columns_.size(); ++i) {
-            row_[i + 1] = columns_[i].source();
-        }
-        writer_ << row_;
-        if (!output_) {
-            throw std::runtime_error("Could not write CSV row");
-        }
-    }
-
-private:
-    std::ostream& output_;
-    csv::CSVWriter<std::ostream, false> writer_;
-    const Executor& executor_;
-    const std::vector<pmsm::Drive::Column>& columns_;
-    std::vector<CsvNumber> row_;
-};
 
 void simulate(const std::filesystem::path& path, const pmsm::Configuration& config) {
     const auto& sim = config.simulation;
@@ -81,7 +29,7 @@ void simulate(const std::filesystem::path& path, const pmsm::Configuration& conf
         throw std::runtime_error("Could not open CSV file");
     }
     {
-        CsvLogger logger(output, executor, drive.columns());
+        pmsm::CsvLogger logger(output, executor, drive.columns());
         executor.register_block(logger, log_period, std::numeric_limits<int>::max());
 
         executor.run(end);

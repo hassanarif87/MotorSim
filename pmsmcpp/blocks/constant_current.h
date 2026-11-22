@@ -1,6 +1,6 @@
 #pragma once
 
-#include "block_ports.h"
+#include "graph/block_ports.h"
 #include "configuration.h"
 
 namespace pmsm {

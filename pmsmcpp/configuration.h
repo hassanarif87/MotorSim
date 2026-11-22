@@ -12,7 +12,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "connections.h"
+#include "graph/connections.h"
 #include "simulation_executor.h"
 
 namespace pmsm {

@@ -7,7 +7,7 @@ Bazel 8.4.0.
 ```sh
 cd pmsmcpp
 bazel build //:pmsm_sim
-bazel test //...
+bazel test //test/...
 bazel run //:pmsm_sim
 ```
 
@@ -35,7 +35,7 @@ fields through C++26 reflection. Each field name is its JSON port name.
 ```cpp
 #pragma once
 
-#include "block_ports.h"
+#include "graph/block_ports.h"
 #include "configuration.h"
 
 namespace pmsm::drive_blocks {
@@ -74,16 +74,16 @@ cc_library(
     name = "current_gain",
     hdrs = ["current_gain.h"],
     deps = [
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
     ],
 )
 ```
 
 Add `//blocks:current_gain` to the `drive` target's dependencies in
-[`BUILD.bazel`](BUILD.bazel).
+[`drive/BUILD.bazel`](drive/BUILD.bazel).
 
-In [`block_catalog.cpp`](block_catalog.cpp), include `blocks/current_gain.h`
+In [`drive/block_catalog.cpp`](drive/block_catalog.cpp), include `blocks/current_gain.h`
 and append `X("current_gain", CurrentGain)` to `PMSM_BLOCK_TYPES`. Add a
 trailing backslash to the previous entry. The factory checks the block
 contract at compile time and registers the callback automatically. Use
@@ -120,7 +120,7 @@ The gain runs before the PI when their ticks coincide. With the default
 starts at 1.5 A. Rebuild and check the run with the commands below.
 
 ```sh
-bazel test //...
+bazel test //test/...
 bazel run //:pmsm_sim -- /tmp/current_gain.csv my_config.json
 ```
 

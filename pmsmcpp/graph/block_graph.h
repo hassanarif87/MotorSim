@@ -8,8 +8,8 @@
 #include <typeindex>
 #include <unordered_map>
 
-#include "block_ports.h"
-#include "connections.h"
+#include "graph/block_ports.h"
+#include "graph/connections.h"
 
 namespace pmsm {
 

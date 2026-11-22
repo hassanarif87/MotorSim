@@ -1,62 +1,45 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "simulation_executor",
     hdrs = ["simulation_executor.h"],
-    visibility = ["//blocks:__pkg__"],
-)
-
-cc_library(
-    name = "connections",
-    hdrs = ["connections.h"],
-)
-
-cc_library(
-    name = "block_ports",
-    hdrs = ["block_ports.h"],
-    visibility = ["//blocks:__pkg__"],
-)
-
-cc_library(
-    name = "block_graph",
-    hdrs = ["block_graph.h"],
-    deps = [
-        ":block_ports",
-        ":connections",
-    ],
-)
-
-cc_library(
-    name = "drive",
-    srcs = ["block_catalog.cpp"],
-    hdrs = ["drive.h"],
-    deps = [
-        ":block_graph",
-        ":configuration",
-        "//blocks:constant_current",
-        "//blocks:continuous_pmsm",
-        "//blocks:current_feedback",
-        "//blocks:current_pi",
-        "//blocks:inverter",
-        "//blocks:speed_control",
-        "//blocks:svpwm",
+    visibility = [
+        "//blocks:__pkg__",
+        "//test:__pkg__",
     ],
 )
 
 cc_library(
     name = "rk4",
     hdrs = ["rk4.h"],
-    visibility = ["//blocks:__pkg__"],
+    visibility = [
+        "//blocks:__pkg__",
+        "//test:__pkg__",
+    ],
 )
 
 cc_library(
     name = "configuration",
     hdrs = ["configuration.h"],
-    visibility = ["//blocks:__pkg__"],
+    visibility = [
+        "//blocks:__pkg__",
+        "//drive:__pkg__",
+    ],
     deps = [
-        ":connections",
         ":simulation_executor",
+        "//graph:connections",
         "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "csv_logger",
+    srcs = ["csv_logger.cpp"],
+    hdrs = ["csv_logger.h"],
+    deps = [
+        ":simulation_executor",
+        "//drive",
+        "@csv-parser//:csv-parser",
     ],
 )
 
@@ -66,36 +49,8 @@ cc_binary(
     data = ["pmsm_config.json"],
     deps = [
         ":configuration",
-        ":drive",
+        ":csv_logger",
         ":simulation_executor",
-        "@csv-parser//:csv-parser",
+        "//drive",
     ],
-)
-
-cc_test(
-    name = "blocks_test",
-    srcs = ["blocks_test.cpp"],
-    deps = [
-        "//blocks:current_pi",
-        "//blocks:inverter",
-        "//blocks:continuous_pmsm",
-        "//blocks:svpwm",
-    ],
-)
-
-cc_test(
-    name = "simulation_executor_test",
-    size = "small",
-    srcs = ["simulation_executor_test.cpp"],
-    deps = [
-        ":rk4",
-        ":simulation_executor",
-    ],
-)
-
-cc_test(
-    name = "block_graph_test",
-    size = "small",
-    srcs = ["block_graph_test.cpp"],
-    deps = [":block_graph"],
 )

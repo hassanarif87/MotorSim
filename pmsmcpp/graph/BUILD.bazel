@@ -1,0 +1,22 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//:__subpackages__"])
+
+cc_library(
+    name = "connections",
+    hdrs = ["connections.h"],
+)
+
+cc_library(
+    name = "block_ports",
+    hdrs = ["block_ports.h"],
+)
+
+cc_library(
+    name = "block_graph",
+    hdrs = ["block_graph.h"],
+    deps = [
+        ":block_ports",
+        ":connections",
+    ],
+)

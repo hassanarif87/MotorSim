@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include "block_ports.h"
+#include "graph/block_ports.h"
 #include "blocks/transforms.h"
 #include "configuration.h"
 #include "rk4.h"

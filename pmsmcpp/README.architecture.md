@@ -3,7 +3,8 @@
 The simulator combines a continuous motor plant with digital blocks that run
 at configured rates. A JSON file defines the block instances, signal
 connections, and CSV columns. See the [assembly guide](README.assembly.md)
-for instructions on editing the model.
+for instructions on editing the model. Run the Bazel tests in [`test/`](test/)
+with `bazel test //test/...`.
 
 ## Startup and ownership
 
@@ -11,10 +12,10 @@ for instructions on editing the model.
 | --- | --- |
 | [`main.cpp`](main.cpp) | Loads the config, constructs the drive, and registers the CSV logger. |
 | [`configuration.h`](configuration.h) | Reads simulation settings and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
-| [`drive.h`](drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
-| [`block_catalog.cpp`](block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
-| [`block_ports.h`](block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
-| [`block_graph.h`](block_graph.h) | Uses C++26 reflection to discover named ports, validate connections, and resolve CSV readers. |
+| [`drive/drive.h`](drive/drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
+| [`drive/block_catalog.cpp`](drive/block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
+| [`graph/block_ports.h`](graph/block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
+| [`graph/block_graph.h`](graph/block_graph.h) | Uses C++26 reflection to discover named ports, validate connections, and resolve CSV readers. |
 | [`blocks/`](blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
 | [`simulation_executor.h`](simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
 
@@ -72,7 +73,7 @@ until their next ticks.
 
 ## Results
 
-The CSV logger reads the configured ports on its own clock. It records
+The [CSV logger](csv_logger.h) reads the configured ports on its own clock. It records
 `time_s` from the executor, then the latest values of the selected inputs
 and outputs. It samples at zero and at the final time, including a final row
 when the end falls between logging ticks. The

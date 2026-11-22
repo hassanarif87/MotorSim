@@ -1,0 +1,30 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "blocks_test",
+    size = "small",
+    srcs = ["blocks_test.cpp"],
+    deps = [
+        "//blocks:continuous_pmsm",
+        "//blocks:current_pi",
+        "//blocks:inverter",
+        "//blocks:svpwm",
+    ],
+)
+
+cc_test(
+    name = "simulation_executor_test",
+    size = "small",
+    srcs = ["simulation_executor_test.cpp"],
+    deps = [
+        "//:rk4",
+        "//:simulation_executor",
+    ],
+)
+
+cc_test(
+    name = "block_graph_test",
+    size = "small",
+    srcs = ["block_graph_test.cpp"],
+    deps = ["//graph:block_graph"],
+)

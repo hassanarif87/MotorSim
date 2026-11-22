@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "drive",
+    srcs = ["block_catalog.cpp"],
+    hdrs = ["drive.h"],
+    visibility = ["//:__pkg__"],
+    deps = [
+        "//:configuration",
+        "//blocks:constant_current",
+        "//blocks:continuous_pmsm",
+        "//blocks:current_feedback",
+        "//blocks:current_pi",
+        "//blocks:inverter",
+        "//blocks:speed_control",
+        "//blocks:svpwm",
+        "//graph:block_graph",
+    ],
+)

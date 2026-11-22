@@ -19,7 +19,7 @@ cc_library(
     hdrs = ["continuous_pmsm.h"],
     deps = [
         ":transforms",
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
         "//:rk4",
         "//:simulation_executor",
@@ -31,7 +31,7 @@ cc_library(
     hdrs = ["current_feedback.h"],
     deps = [
         ":transforms",
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
     ],
 )
@@ -41,7 +41,7 @@ cc_library(
     hdrs = ["current_pi.h"],
     deps = [
         ":signals",
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
     ],
 )
@@ -51,7 +51,7 @@ cc_library(
     hdrs = ["svpwm.h"],
     deps = [
         ":transforms",
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
     ],
 )
@@ -61,7 +61,7 @@ cc_library(
     hdrs = ["inverter.h"],
     deps = [
         ":signals",
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
     ],
 )
@@ -70,7 +70,7 @@ cc_library(
     name = "speed_control",
     hdrs = ["speed_control.h"],
     deps = [
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
     ],
 )
@@ -79,7 +79,7 @@ cc_library(
     name = "constant_current",
     hdrs = ["constant_current.h"],
     deps = [
-        "//:block_ports",
+        "//graph:block_ports",
         "//:configuration",
     ],
 )
