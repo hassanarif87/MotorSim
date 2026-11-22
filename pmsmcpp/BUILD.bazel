@@ -15,7 +15,6 @@ cc_library(
     name = "block_ports",
     hdrs = ["block_ports.h"],
     visibility = ["//blocks:__pkg__"],
-    deps = ["@boost.describe"],
 )
 
 cc_library(
@@ -24,7 +23,6 @@ cc_library(
     deps = [
         ":block_ports",
         ":connections",
-        "@boost.mp11",
     ],
 )
 

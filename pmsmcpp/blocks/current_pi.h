@@ -78,11 +78,9 @@ struct PiInputs {
     InputPort<Current> iq_ref, id, iq;
     InputPort<Speed> omega;
 };
-BOOST_DESCRIBE_STRUCT(PiInputs, (), (iq_ref, id, iq, omega))
 
 /// Voltage-limited dq commands held between current-loop ticks, in volts.
 struct PiOutputs { Voltage vd, vq; Current id_ref; };
-BOOST_DESCRIBE_STRUCT(PiOutputs, (), (vd, vq, id_ref))
 
 using config_detail::bounded_number;
 using config_detail::number;

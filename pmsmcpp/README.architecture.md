@@ -14,7 +14,7 @@ for instructions on editing the model.
 | [`drive.h`](drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
 | [`block_catalog.cpp`](block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
 | [`block_ports.h`](block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
-| [`block_graph.h`](block_graph.h) | Uses Boost.Describe to discover named ports, validate connections, and resolve CSV readers. |
+| [`block_graph.h`](block_graph.h) | Uses C++26 reflection to discover named ports, validate connections, and resolve CSV readers. |
 | [`blocks/`](blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
 | [`simulation_executor.h`](simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
 

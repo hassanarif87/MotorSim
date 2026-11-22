@@ -15,9 +15,6 @@ struct Outputs {
     int count = 0;
 };
 
-BOOST_DESCRIBE_STRUCT(Inputs, (), (signal))
-BOOST_DESCRIBE_STRUCT(Outputs, (), (signal, count))
-
 bool rejects(const pmsm::Connections& connections, std::string_view expected) {
     Inputs inputs;
     Outputs outputs;

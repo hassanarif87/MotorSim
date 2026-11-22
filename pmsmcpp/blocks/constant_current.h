@@ -9,7 +9,6 @@ namespace drive_blocks {
 
 /// Fixed current published by the source, in amperes.
 struct ConstantCurrentOutputs { Current value; };
-BOOST_DESCRIBE_STRUCT(ConstantCurrentOutputs, (), (value))
 
 using config_detail::number;
 

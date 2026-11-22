@@ -48,7 +48,6 @@ namespace drive_blocks {
 
 /// Applied phase voltages at the continuous motor input, in volts.
 struct PhaseVoltageInputs { InputPort<Voltage> va, vb, vc; };
-BOOST_DESCRIBE_STRUCT(PhaseVoltageInputs, (), (va, vb, vc))
 
 /// Motor phase currents (A), mechanical speed (rad/s), and position (rad).
 struct PlantOutputs {
@@ -56,7 +55,6 @@ struct PlantOutputs {
     Speed omega;
     Position theta;
 };
-BOOST_DESCRIBE_STRUCT(PlantOutputs, (), (ia, ib, ic, omega, theta))
 
 using config_detail::bounded_number;
 using config_detail::number;

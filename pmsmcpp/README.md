@@ -1,6 +1,6 @@
 # PMSM C++ simulation
 
-The simulator builds in C++26 mode with GCC 16.2. Bazel selects `gcc-16`
+The simulator builds with GCC 16.2 using `-std=c++26 -freflection`. Bazel selects `gcc-16`
 from `PATH`. From the repository root, run the following with Bazelisk or
 Bazel 8.4.0.
 
@@ -29,8 +29,8 @@ bazel run //:pmsm_sim -- /tmp/my_run.csv my_config.json
 
 This example adds a periodic current gain that can sit between the speed
 controller and current PI. Save it as `blocks/current_gain.h`. The factory expects a constructor taking `const BlockSpec&` and public
-members named `inputs` and `outputs`. Boost.Describe exposes the port names
-and their types to the graph builder.
+members named `inputs` and `outputs`. The graph builder discovers their public
+fields through C++26 reflection. Each field name is its JSON port name.
 
 ```cpp
 #pragma once
@@ -47,9 +47,6 @@ struct CurrentGainInputs {
 struct CurrentGainOutputs {
     Current current;
 };
-
-BOOST_DESCRIBE_STRUCT(CurrentGainInputs, (), (current))
-BOOST_DESCRIBE_STRUCT(CurrentGainOutputs, (), (current))
 
 class CurrentGain {
 public:

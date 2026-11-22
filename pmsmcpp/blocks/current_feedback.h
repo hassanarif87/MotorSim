@@ -19,11 +19,9 @@ struct FeedbackInputs {
     InputPort<Current> ia, ib, ic;
     InputPort<Position> theta;
 };
-BOOST_DESCRIBE_STRUCT(FeedbackInputs, (), (ia, ib, ic, theta))
 
 /// Sampled d- and q-axis currents, in amperes.
 struct FeedbackOutputs { Current id, iq; };
-BOOST_DESCRIBE_STRUCT(FeedbackOutputs, (), (id, iq))
 
 using config_detail::positive_integer;
 

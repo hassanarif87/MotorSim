@@ -1,12 +1,13 @@
 #pragma once
 
+#include <meta>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <typeindex>
 #include <unordered_map>
 
-#include <boost/mp11.hpp>
 #include "block_ports.h"
 #include "connections.h"
 
@@ -24,11 +25,7 @@ class BlockGraph {
 public:
     template <typename Inputs, typename Outputs>
     void add(const std::string& block, Inputs& inputs, const Outputs& outputs) {
-        using boost::describe::describe_members;
-        using boost::describe::mod_public;
-
-        boost::mp11::mp_for_each<describe_members<Inputs, mod_public>>([&](auto member) {
-            auto& port = inputs.*member.pointer;
+        visit_ports(inputs, [&](std::string_view name, auto& port) {
             using Port = std::remove_reference_t<decltype(port)>;
             using Value = typename Port::Value;
             OutputReader reader{&port, nullptr};
@@ -37,7 +34,7 @@ public:
                     return static_cast<const Port*>(address)->read();
                 };
             }
-            add_port(inputs_, block + "." + member.name, Input{
+            add_port(inputs_, (block + ".").append(name), Input{
                 typeid(Value), &port, reader,
                 [](void* destination, const void* source) {
                     static_cast<Port*>(destination)->bind(*static_cast<const Value*>(source));
@@ -48,8 +45,7 @@ public:
             });
         });
 
-        boost::mp11::mp_for_each<describe_members<Outputs, mod_public>>([&](auto member) {
-            const auto& port = outputs.*member.pointer;
+        visit_ports(outputs, [&](std::string_view name, const auto& port) {
             using Value = std::decay_t<decltype(port)>;
             OutputReader reader{&port, nullptr};
             if constexpr (std::is_convertible_v<Value, double>) {
@@ -57,7 +53,7 @@ public:
                     return *static_cast<const Value*>(address);
                 };
             }
-            add_port(outputs_, block + "." + member.name, Output{typeid(Value), reader});
+            add_port(outputs_, (block + ".").append(name), Output{typeid(Value), reader});
         });
     }
 
@@ -103,6 +99,17 @@ public:
     }
 
 private:
+    template <typename Ports, typename Visit>
+    static void visit_ports(Ports& ports, [[maybe_unused]] Visit visit) {
+        using PortList = std::remove_cv_t<Ports>;
+        static constexpr auto members = std::define_static_array(
+            std::meta::nonstatic_data_members_of(
+                ^^PortList, std::meta::access_context::current()));
+        template for (constexpr auto member : members) {
+            visit(std::meta::identifier_of(member), ports.[:member:]);
+        }
+    }
+
     struct Input {
         std::type_index type;
         void* address;

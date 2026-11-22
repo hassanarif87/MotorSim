@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/describe.hpp>
-
 namespace pmsm {
 
 template <typename T>
@@ -38,7 +36,6 @@ using Duty = Signal<struct DutyTag>;
 
 /// Port list for a source block with no inputs.
 struct NoInputs {};
-BOOST_DESCRIBE_STRUCT(NoInputs, (), ())
 
 }  // namespace drive_blocks
 }  // namespace pmsm

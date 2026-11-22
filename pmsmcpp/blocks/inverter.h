@@ -22,11 +22,9 @@ namespace drive_blocks {
 
 /// Normalized phase duty commands consumed by the inverter.
 struct DutyInputs { InputPort<Duty> duty_a, duty_b, duty_c; };
-BOOST_DESCRIBE_STRUCT(DutyInputs, (), (duty_a, duty_b, duty_c))
 
 /// Motor-neutral phase voltages published by the averaged inverter, in volts.
 struct PhaseVoltageOutputs { Voltage va, vb, vc; };
-BOOST_DESCRIBE_STRUCT(PhaseVoltageOutputs, (), (va, vb, vc))
 
 using config_detail::bounded_number;
 

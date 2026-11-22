@@ -26,11 +26,9 @@ namespace drive_blocks {
 
 /// Measured mechanical speed for the outer loop, in rad/s.
 struct SpeedInputs { InputPort<Speed> omega; };
-BOOST_DESCRIBE_STRUCT(SpeedInputs, (), (omega))
 
 /// Requested q-axis current from the speed controller, in amperes.
 struct SpeedOutputs { Current iq_ref; };
-BOOST_DESCRIBE_STRUCT(SpeedOutputs, (), (iq_ref))
 
 using config_detail::bounded_number;
 using config_detail::number;

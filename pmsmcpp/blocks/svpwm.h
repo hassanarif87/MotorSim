@@ -25,11 +25,9 @@ struct PwmInputs {
     InputPort<Voltage> vd, vq;
     InputPort<Position> theta;
 };
-BOOST_DESCRIBE_STRUCT(PwmInputs, (), (vd, vq, theta))
 
 /// Normalized phase duty commands published by SVPWM.
 struct DutyOutputs { Duty duty_a, duty_b, duty_c; };
-BOOST_DESCRIBE_STRUCT(DutyOutputs, (), (duty_a, duty_b, duty_c))
 
 using config_detail::bounded_number;
 using config_detail::positive_integer;
