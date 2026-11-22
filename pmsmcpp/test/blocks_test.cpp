@@ -50,7 +50,7 @@ void check_voltage_blocks() {
     parameters.insert(std::string("bus_voltage_v"), rfl::Generic(std::sqrt(3.0)));
     const pmsm::BlockSpec spec{
         .name = "current_pi",
-        .type = "current_pi",
+        .type = "CurrentController",
         .parameters = parameters,
         .rate_hz = pmsm::RateHz{10},
     };

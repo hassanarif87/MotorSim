@@ -14,18 +14,18 @@ namespace pmsm {
 
 Drive::Factory Drive::find_factory(std::string_view type) {
 #define PMSM_BLOCK_TYPES(X) \
-    X("pmsm", ContinuousPmsm) \
-    X("speed_control", SpeedController) \
-    X("current_feedback", Feedback) \
-    X("current_pi", CurrentController) \
-    X("simplefoc_velocity", SimpleFocVelocity) \
-    X("simplefoc_current", SimpleFocCurrent) \
-    X("svpwm", Pwm) \
-    X("inverter", Inverter) \
-    X("constant_current", ConstantCurrent) \
-    X("ConstantTorque", ConstantTorque)
+    X(ContinuousPmsm) \
+    X(SpeedController) \
+    X(Feedback) \
+    X(CurrentController) \
+    X(SimpleFocVelocity) \
+    X(SimpleFocCurrent) \
+    X(Pwm) \
+    X(Inverter) \
+    X(ConstantCurrent) \
+    X(ConstantTorque)
 
-#define PMSM_FACTORY(name, block) if (type == name) return &add<drive_blocks::block>;
+#define PMSM_FACTORY(block) if (type == #block) return &add<drive_blocks::block>;
     PMSM_BLOCK_TYPES(PMSM_FACTORY)
 #undef PMSM_FACTORY
 #undef PMSM_BLOCK_TYPES

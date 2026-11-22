@@ -93,7 +93,7 @@ Add `//src/blocks:current_gain` to the `drive` target's dependencies in
 [`src/drive/BUILD.bazel`](src/drive/BUILD.bazel).
 
 In [`src/drive/block_catalog.cpp`](src/drive/block_catalog.cpp), include `src/blocks/current_gain.h`
-and append `X("current_gain", CurrentGain)` to `PMSM_BLOCK_TYPES`. Add a
+and append `X(CurrentGain)` to `PMSM_BLOCK_TYPES`. Add a
 trailing backslash to the previous entry. The factory checks the block
 contract at compile time and registers the callback automatically. Use
 `void tick()` for a periodic block or
@@ -108,7 +108,7 @@ Start with a fresh copy of the default config and add this instance to
 ```json
 {
   "name": "reference_gain",
-  "type": "current_gain",
+  "type": "CurrentGain",
   "rate_hz": 20000,
   "priority": 2,
   "parameters": {"gain": 0.5}

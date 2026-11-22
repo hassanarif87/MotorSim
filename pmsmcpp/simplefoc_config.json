@@ -7,7 +7,7 @@
   "blocks": [
     {
       "name": "pmsm",
-      "type": "pmsm",
+      "type": "ContinuousPmsm",
       "parameters": {
         "resistance_ohm": 0.15,
         "inductance_h": 0.00025,
@@ -27,7 +27,7 @@
     },
     {
       "name": "speed_control",
-      "type": "simplefoc_velocity",
+      "type": "SimpleFocVelocity",
       "rate_hz": 1000,
       "priority": 6,
       "parameters": {
@@ -44,7 +44,7 @@
     },
     {
       "name": "current_feedback",
-      "type": "current_feedback",
+      "type": "Feedback",
       "rate_hz": 20000,
       "priority": 2,
       "parameters": {
@@ -53,7 +53,7 @@
     },
     {
       "name": "current_pi",
-      "type": "simplefoc_current",
+      "type": "SimpleFocCurrent",
       "rate_hz": 20000,
       "priority": 3,
       "parameters": {
@@ -76,7 +76,7 @@
     },
     {
       "name": "svpwm",
-      "type": "svpwm",
+      "type": "Pwm",
       "rate_hz": 20000,
       "priority": 4,
       "parameters": {
@@ -87,7 +87,7 @@
     },
     {
       "name": "inverter",
-      "type": "inverter",
+      "type": "Inverter",
       "rate_hz": 20000,
       "priority": 5,
       "parameters": {

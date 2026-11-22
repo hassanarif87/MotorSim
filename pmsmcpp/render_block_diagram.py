@@ -32,7 +32,7 @@ def render_block_diagram(
         rate = block.get("rate_hz")
         if rate:
             clock = f"{rate / 1000:g} kHz"
-        elif block["type"] in {"ConstantTorque", "ConstantCurrent", "constant_current"}:
+        elif block["type"] in {"ConstantTorque", "ConstantCurrent"}:
             clock = "Constant"
         else:
             clock = "Continuous · RK4"

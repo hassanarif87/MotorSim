@@ -14,7 +14,7 @@ following sections.
 | `connections` | Signal routes as `[destination, source]` pairs |
 | `log_columns` | CSV columns as `[header, port]` pairs |
 
-Each instance has a unique `name` without dots and a registered `type`. Put
+Each instance has a unique `name` without dots and a `type` matching the registered C++ class name exactly. Put
 its settings in `parameters`. Periodic blocks require `rate_hz` and accept
 an optional `priority` (default 0). Lower priorities run first at coincident
 ticks, with JSON order breaking ties. Frequencies must be positive integers
@@ -53,7 +53,7 @@ add the connection.
    ```json
    {
      "name": "reference",
-     "type": "constant_current",
+     "type": "ConstantCurrent",
      "parameters": {"value_a": 2.0}
    }
    ```

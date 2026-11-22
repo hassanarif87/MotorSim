@@ -52,15 +52,15 @@ def main():
 
     try:
         config = json.loads(args.config.read_text())
-        current = next(b for b in config["blocks"] if b["type"] == "simplefoc_current")
-        velocity = next(b for b in config["blocks"] if b["type"] == "simplefoc_velocity")
+        current = next(b for b in config["blocks"] if b["type"] == "SimpleFocCurrent")
+        velocity = next(b for b in config["blocks"] if b["type"] == "SimpleFocVelocity")
         if args.loop == "current":
-            plant = next(b for b in config["blocks"] if b["type"] == "pmsm")
+            plant = next(b for b in config["blocks"] if b["type"] == "ContinuousPmsm")
             plant["parameters"]["lock_rotor"] = True
             # Replace the outer loop with a q-axis current step.
             velocity_name = velocity["name"]
             velocity.clear()
-            velocity.update(name=velocity_name, type="constant_current",
+            velocity.update(name=velocity_name, type="ConstantCurrent",
                             parameters={"value_a": args.target})
             config["connections"] = [
                 route for route in config["connections"]
