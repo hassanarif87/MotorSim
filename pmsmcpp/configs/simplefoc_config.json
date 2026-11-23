@@ -139,6 +139,7 @@
     ["vc_v", "inverter.vc"],
     ["omega_ref_rad_s", "speed_control.omega_ref"],
     ["omega_filtered_rad_s", "speed_control.omega_filtered"],
+    ["id_ref_a", "current_pi.id_ref"],
     ["iq_ref_a", "current_pi.iq_applied"],
     ["id_filtered_a", "current_pi.id_filtered"],
     ["iq_filtered_a", "current_pi.iq_filtered"]

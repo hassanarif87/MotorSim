@@ -126,6 +126,7 @@
     ["va_v", "inverter.va"],
     ["vb_v", "inverter.vb"],
     ["vc_v", "inverter.vc"],
+    ["id_ref_a", "current_pi.id_ref"],
     ["iq_ref_a", "current_pi.iq_applied"],
     ["id_filtered_a", "current_pi.id_filtered"],
     ["iq_filtered_a", "current_pi.iq_filtered"]

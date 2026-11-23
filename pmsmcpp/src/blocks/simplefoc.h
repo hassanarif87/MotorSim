@@ -113,7 +113,7 @@ public:
         outputs.id_filtered = filter_d_.update(id);
         outputs.iq_filtered = filter_q_.update(iq);
         outputs.iq_applied = inputs.iq_ref.read();
-        outputs.vd = pid_d_.update(-outputs.id_filtered, -coupling * iq);
+        outputs.vd = pid_d_.update(outputs.id_ref - outputs.id_filtered, -coupling * iq);
         outputs.vq = pid_q_.update(outputs.iq_applied - outputs.iq_filtered,
                                    coupling * id + back_emf_constant_ * omega);
     }
@@ -124,6 +124,7 @@ public:
     } inputs;
     struct Outputs {
         Current id_filtered, iq_filtered, iq_applied;
+        const Current id_ref{0.0};
         Voltage vd, vq;
     } outputs;
 
