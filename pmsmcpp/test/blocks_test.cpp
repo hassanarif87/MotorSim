@@ -78,12 +78,49 @@ void check_voltage_blocks() {
     expect_near(dq.y(), 1.0, "reconstructed q voltage");
 }
 
+void check_nonideal_inverter() {
+    using namespace pmsm::drive_blocks;
+    rfl::Generic::Object parameters;
+    parameters.insert(std::string("bus_voltage_v"), rfl::Generic(24.0));
+    parameters.insert(std::string("dead_time_s"), rfl::Generic(0.0000005));
+    parameters.insert(std::string("switch_resistance_ohm"), rfl::Generic(0.02));
+    NonIdealInverter inverter(pmsm::BlockSpec{
+        .name = "inverter",
+        .type = "NonIdealInverter",
+        .parameters = parameters,
+        .rate_hz = pmsm::RateHz{20000},
+    });
+    Duty a{0.75}, b{0.25}, c{0.5};
+    Current ia{0.0}, ib{0.0}, ic{0.0};
+    inverter.inputs.duty_a.bind(a);
+    inverter.inputs.duty_b.bind(b);
+    inverter.inputs.duty_c.bind(c);
+    inverter.inputs.ia.bind(ia);
+    inverter.inputs.ib.bind(ib);
+    inverter.inputs.ic.bind(ic);
+
+    inverter.tick();
+    expect_near(inverter.outputs.va, 0.0, "initial latched phase A");
+    a = 1.2;
+    b = -0.2;
+    ia = 2.0;
+    ib = -2.0;
+    inverter.tick();
+    expect_near(inverter.outputs.va, 5.72, "latched phase A with voltage drop");
+    expect_near(inverter.outputs.vb, -5.72, "latched phase B with voltage drop");
+    expect_near(inverter.outputs.vc, 0.0, "latched phase C");
+    inverter.tick();
+    expect_near(inverter.outputs.va, 11.96, "clipped phase A without dead time");
+    expect_near(inverter.outputs.vb, -11.96, "clipped phase B without dead time");
+}
+
 }  // namespace
 
 int main() {
     try {
         check_plant();
         check_voltage_blocks();
+        check_nonideal_inverter();
     } catch (const std::runtime_error&) {
         return 1;
     }

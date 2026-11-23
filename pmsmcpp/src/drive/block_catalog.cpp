@@ -22,6 +22,7 @@ Drive::Factory Drive::find_factory(std::string_view type) {
     X(SimpleFocCurrent) \
     X(Pwm) \
     X(Inverter) \
+    X(NonIdealInverter) \
     X(ConstantCurrent) \
     X(ConstantTorque)
 

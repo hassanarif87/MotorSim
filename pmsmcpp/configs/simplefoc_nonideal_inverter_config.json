@@ -1,0 +1,151 @@
+{
+  "simulation": {
+    "tick_rate_hz": 100000,
+    "duration_s": 0.4,
+    "log_rate_hz": 20000
+  },
+  "blocks": [
+    {
+      "name": "pmsm",
+      "type": "ContinuousPmsm",
+      "parameters": {
+        "resistance_ohm": 0.15,
+        "inductance_h": 0.00025,
+        "pole_pairs": 4,
+        "back_emf_v_per_rad_s": 0.017089567968012923,
+        "torque_constant_nm_per_a": 0.01771066784611906,
+        "inertia_kg_m2": 9.597e-06,
+        "viscous_friction_nm_per_rad_s": 0.0
+      }
+    },
+    {
+      "name": "load",
+      "type": "ConstantTorque",
+      "parameters": {
+        "value_nm": 0.0
+      }
+    },
+    {
+      "name": "speed_control",
+      "type": "SimpleFocVelocity",
+      "rate_hz": 1000,
+      "priority": 6,
+      "parameters": {
+        "PID_velocity": {
+          "P": 0.08,
+          "I": 1.5,
+          "D": 0.0,
+          "output_ramp": 0.0
+        },
+        "LPF_velocity_Tf": 0.005,
+        "current_limit": 3.0,
+        "target_rad_s": 100.0
+      }
+    },
+    {
+      "name": "current_feedback",
+      "type": "Feedback",
+      "rate_hz": 20000,
+      "priority": 2,
+      "parameters": {
+        "pole_pairs": 4
+      }
+    },
+    {
+      "name": "current_pi",
+      "type": "SimpleFocCurrent",
+      "rate_hz": 20000,
+      "priority": 3,
+      "parameters": {
+        "PID_current_d": {
+          "P": 0.25,
+          "I": 150.0,
+          "D": 0.0,
+          "output_ramp": 0.0
+        },
+        "PID_current_q": {
+          "P": 0.25,
+          "I": 150.0,
+          "D": 0.0,
+          "output_ramp": 0.0
+        },
+        "LPF_current_d_Tf": 0.0002,
+        "LPF_current_q_Tf": 0.0002,
+        "voltage_limit": 12.0,
+        "feedforward_enabled": true,
+        "pole_pairs": 4,
+        "inductance_h": 0.00025,
+        "back_emf_v_per_rad_s": 0.017089567968012923
+      }
+    },
+    {
+      "name": "svpwm",
+      "type": "Pwm",
+      "rate_hz": 20000,
+      "priority": 4,
+      "parameters": {
+        "pole_pairs": 4,
+        "bus_voltage_v": 24.0,
+        "predict_midpoint_angle": false
+      }
+    },
+    {
+      "name": "inverter",
+      "type": "NonIdealInverter",
+      "rate_hz": 20000,
+      "priority": 5,
+      "parameters": {
+        "bus_voltage_v": 24.0,
+        "dead_time_s": 0.0000005,
+        "switch_resistance_ohm": 0.02
+      }
+    }
+  ],
+  "connections": [
+    ["pmsm.load_torque", "load.value"],
+    ["speed_control.omega", "pmsm.omega"],
+    ["current_feedback.ia", "pmsm.ia"],
+    ["current_feedback.ib", "pmsm.ib"],
+    ["current_feedback.ic", "pmsm.ic"],
+    ["current_feedback.theta", "pmsm.theta"],
+    ["current_pi.iq_ref", "speed_control.iq_ref"],
+    ["current_pi.id", "current_feedback.id"],
+    ["current_pi.iq", "current_feedback.iq"],
+    ["current_pi.omega", "pmsm.omega"],
+    ["svpwm.vd", "current_pi.vd"],
+    ["svpwm.vq", "current_pi.vq"],
+    ["svpwm.theta", "pmsm.theta"],
+    ["svpwm.omega", "pmsm.omega"],
+    ["inverter.duty_a", "svpwm.duty_a"],
+    ["inverter.duty_b", "svpwm.duty_b"],
+    ["inverter.duty_c", "svpwm.duty_c"],
+    ["inverter.ia", "pmsm.ia"],
+    ["inverter.ib", "pmsm.ib"],
+    ["inverter.ic", "pmsm.ic"],
+    ["pmsm.va", "inverter.va"],
+    ["pmsm.vb", "inverter.vb"],
+    ["pmsm.vc", "inverter.vc"]
+  ],
+  "log_columns": [
+    ["ia_a", "pmsm.ia"],
+    ["ib_a", "pmsm.ib"],
+    ["ic_a", "pmsm.ic"],
+    ["omega_rad_s", "pmsm.omega"],
+    ["theta_rad", "pmsm.theta"],
+    ["id_a", "current_feedback.id"],
+    ["iq_a", "current_feedback.iq"],
+    ["vd_v", "current_pi.vd"],
+    ["vq_v", "current_pi.vq"],
+    ["duty_a", "svpwm.duty_a"],
+    ["duty_b", "svpwm.duty_b"],
+    ["duty_c", "svpwm.duty_c"],
+    ["va_v", "inverter.va"],
+    ["vb_v", "inverter.vb"],
+    ["vc_v", "inverter.vc"],
+    ["omega_ref_rad_s", "speed_control.omega_ref"],
+    ["omega_filtered_rad_s", "speed_control.omega_filtered"],
+    ["iq_ref_a", "current_pi.iq_applied"],
+    ["id_filtered_a", "current_pi.id_filtered"],
+    ["iq_filtered_a", "current_pi.iq_filtered"]
+  ]
+}

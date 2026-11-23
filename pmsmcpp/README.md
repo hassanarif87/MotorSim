@@ -203,3 +203,23 @@ See the upstream
 [PID](https://github.com/simplefoc/Arduino-FOC/blob/v2.3.5/src/common/pid.cpp),
 and [filter](https://github.com/simplefoc/Arduino-FOC/blob/v2.3.5/src/common/lowpass_filter.cpp)
 implementations.
+
+## Run the SimpleFOC speed loop with a nonideal inverter
+
+```sh
+bazel run //:pmsm_sim -- configs/simplefoc_nonideal_inverter_config.json /tmp/simplefoc_nonideal.csv
+```
+
+`NonIdealInverter` accepts the same three duty inputs and produces the same three
+motor-neutral voltage outputs as `Inverter`. Set its `rate_hz` to the PWM carrier
+rate and schedule it after the PWM command block when their ticks coincide.
+The block captures the new duty command at each tick and applies it at the
+following PWM boundary. At 20 kHz this adds 50 µs of delay. The initial duty is
+50% on all three legs.
+
+The profile uses example values of 0.5 µs for `dead_time_s` and 20 mΩ for
+`switch_resistance_ohm`. Connect `ia`, `ib`, and `ic` from the plant and specify
+both parameters. Set both to zero to model the PWM latch delay alone. The
+bridge uses cycle-averaged voltages and a fixed DC bus.
+
+Use the profile with `tune_simplefoc.py --config configs/simplefoc_nonideal_inverter_config.json`.
