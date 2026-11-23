@@ -71,7 +71,7 @@
         },
         "LPF_current_d_Tf": 0.0002,
         "LPF_current_q_Tf": 0.0002,
-        "voltage_limit": 12.0,
+        "voltage_limit": 9.79,
         "feedforward_enabled": true,
         "pole_pairs": 4,
         "inductance_h": 0.00025,

@@ -223,3 +223,17 @@ both parameters. Set both to zero to model the PWM latch delay alone. The
 bridge uses cycle-averaged voltages and a fixed DC bus.
 
 Use the profile with `tune_simplefoc.py --config configs/simplefoc_nonideal_inverter_config.json`.
+
+## Run the SimpleFOC speed loop with dead-time compensation
+
+```sh
+bazel run //:pmsm_sim -- configs/simplefoc_dead_time_compensation_config.json /tmp/simplefoc_compensated.csv
+```
+
+This profile runs `DeadTimeCompensation` between SVPWM and the inverter at the
+PWM rate. Set the block's `dead_time_s` to match the inverter's dead time.
+With the example settings, it adds or subtracts up to one percentage point of
+duty based on phase current. The correction tapers linearly to zero within
+`zero_current_band_a` (0.05 A). Set the compensation block's `dead_time_s` to
+zero for a baseline run with the inverter's dead time still active. The CSV
+includes the raw duties and the `duty_*_compensated` commands before the latch.
