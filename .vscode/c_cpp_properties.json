@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "MotorSim (Bazel)",
+            "compilerPath": "${env:HOME}/.local/bin/g++-16",
+            "compilerArgs": ["-std=c++26", "-freflection"],
+            "intelliSenseMode": "linux-gcc-x64",
+            "includePath": [
+                "${workspaceFolder}/pmsmcpp",
+                "${workspaceFolder}/pmsmcpp/bazel-pmsmcpp/external/eigen+",
+                "${workspaceFolder}/pmsmcpp/bazel-pmsmcpp/external/reflect-cpp+/include",
+                "${workspaceFolder}/pmsmcpp/bazel-pmsmcpp/external/csv-parser+/include",
+                "${workspaceFolder}/pmsmcpp/bazel-pmsmcpp/external/yyjson+/src"
+            ],
+            "defines": ["REFLECT_CPP_C_ARRAYS_OR_INHERITANCE"]
+        }
+    ],
+    "version": 4
+}
