@@ -12,21 +12,10 @@
 
 namespace pmsm {
 
-inline PhaseVoltage ideal_inverter(DutyCycles duty, double bus_voltage) {
-    if (!std::isfinite(bus_voltage) || bus_voltage <= 0.0 || !duty.abc.allFinite()) {
-        throw std::invalid_argument("Inverter requires finite duties and a positive finite DC bus");
-    }
-    const Eigen::Vector3d pole = bus_voltage * duty.abc.cwiseMax(0.0).cwiseMin(1.0);
-    return {pole.array() - pole.mean()};
-}
-
 namespace drive_blocks {
 
 /// Normalized phase duty commands consumed by the inverter.
 struct DutyInputs { InputPort<Duty> duty_a, duty_b, duty_c; };
-
-/// Motor-neutral phase voltages published by the averaged inverter, in volts.
-struct PhaseVoltageOutputs { Voltage va, vb, vc; };
 
 class Inverter {
     struct Parameters { PositiveReal bus_voltage_v; };
@@ -34,6 +23,14 @@ class Inverter {
 public:
     explicit Inverter(const BlockSpec& spec)
         : bus_voltage_(spec.read_parameters<Parameters>().bus_voltage_v.get()) {}
+
+    static PhaseVoltage ideal_inverter(DutyCycles duty, double bus_voltage) {
+        if (!std::isfinite(bus_voltage) || bus_voltage <= 0.0 || !duty.abc.allFinite()) {
+            throw std::invalid_argument("Inverter requires finite duties and a positive finite DC bus");
+        }
+        const Eigen::Vector3d pole = bus_voltage * duty.abc.cwiseMax(0.0).cwiseMin(1.0);
+        return {pole.array() - pole.mean()};
+    }
 
     void tick() {
         const auto voltage = ideal_inverter(
@@ -46,52 +43,6 @@ public:
 
 private:
     double bus_voltage_;
-};
-
-class DeadTimeCompensation {
-    struct Parameters {
-        NonnegativeReal dead_time_s;
-        PositiveReal zero_current_band_a;
-    };
-
-    struct Inputs {
-        InputPort<Duty> duty_a, duty_b, duty_c;
-        InputPort<Current> ia, ib, ic;
-    };
-
-public:
-    explicit DeadTimeCompensation(const BlockSpec& spec)
-        : DeadTimeCompensation(spec.read_parameters<Parameters>(),
-                               std::chrono::duration<double>(spec.period().value()).count()) {}
-
-    void tick() {
-        outputs = {correct(inputs.duty_a.read(), inputs.ia.read()),
-                   correct(inputs.duty_b.read(), inputs.ib.read()),
-                   correct(inputs.duty_c.read(), inputs.ic.read())};
-    }
-
-    Inputs inputs;
-    struct Outputs { Duty duty_a, duty_b, duty_c; } outputs;
-
-private:
-    DeadTimeCompensation(const Parameters& parameters, double period)
-        : dead_fraction_(parameters.dead_time_s.get() / period),
-          zero_current_band_(parameters.zero_current_band_a.get()) {
-        if (dead_fraction_ >= 0.5) {
-            throw std::invalid_argument("Compensated dead time must be less than half the PWM period");
-        }
-    }
-
-    double correct(double duty, double current) const {
-        // A fully on or fully off leg has no transitions to compensate.
-        if (duty <= 0.0 || duty >= 1.0) {
-            return std::clamp(duty, 0.0, 1.0);
-        }
-        const double polarity = std::clamp(current / zero_current_band_, -1.0, 1.0);
-        return std::clamp(duty + dead_fraction_ * polarity, 0.0, 1.0);
-    }
-
-    double dead_fraction_, zero_current_band_;
 };
 
 /// A PWM-cycle averaged bridge with shadow-register duty updates.

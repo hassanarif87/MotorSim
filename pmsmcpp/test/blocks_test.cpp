@@ -3,9 +3,9 @@
 #include <stdexcept>
 #include <string>
 
-#include "src/blocks/current_pi.h"
 #include "src/blocks/inverter.h"
 #include "src/blocks/continuous_pmsm.h"
+#include "src/blocks/simplefoc.h"
 #include "src/blocks/svpwm.h"
 
 namespace {
@@ -37,42 +37,56 @@ void check_plant() {
     expect_near(output.current.abc.sum(), 0.0, "phase current sum");
 }
 
-void check_voltage_blocks() {
+void check_simplefoc_current() {
     using namespace pmsm::drive_blocks;
+    rfl::Generic::Object pid;
+    pid.insert(std::string("P"), rfl::Generic(2.0));
+    pid.insert(std::string("I"), rfl::Generic(4.0));
+    pid.insert(std::string("D"), rfl::Generic(0.0));
+    pid.insert(std::string("output_ramp"), rfl::Generic(0.0));
     rfl::Generic::Object parameters;
-    parameters.insert(std::string("kp"), rfl::Generic(2.0));
-    parameters.insert(std::string("ki"), rfl::Generic(1.0));
-    parameters.insert(std::string("kaw"), rfl::Generic(2.0));
-    parameters.insert(std::string("inductance_h"), rfl::Generic(0.25));
+    parameters.insert(std::string("PID_current_d"), rfl::Generic(pid));
+    parameters.insert(std::string("PID_current_q"), rfl::Generic(pid));
+    parameters.insert(std::string("LPF_current_d_Tf"), rfl::Generic(0.1));
+    parameters.insert(std::string("LPF_current_q_Tf"), rfl::Generic(0.1));
+    parameters.insert(std::string("voltage_limit"), rfl::Generic(5.0));
+    parameters.insert(std::string("feedforward_enabled"), rfl::Generic(true));
     parameters.insert(std::string("pole_pairs"), rfl::Generic(2));
+    parameters.insert(std::string("inductance_h"), rfl::Generic(0.125));
     parameters.insert(std::string("back_emf_v_per_rad_s"), rfl::Generic(0.2));
-    parameters.insert(std::string("id_reference_a"), rfl::Generic(0.0));
-    parameters.insert(std::string("bus_voltage_v"), rfl::Generic(std::sqrt(3.0)));
-    const pmsm::BlockSpec spec{
+    SimpleFocCurrent controller(pmsm::BlockSpec{
         .name = "current_pi",
-        .type = "CurrentController",
+        .type = "SimpleFocCurrent",
         .parameters = parameters,
         .rate_hz = pmsm::RateHz{10},
-    };
-    CurrentController controller(spec);
-    Current iq_ref{10.0};
-    const Current measured{0.0};
-    const Speed omega{0.0};
+    });
+    Current iq_ref{3.0};
+    const Current id{2.0}, iq{4.0};
+    const Speed omega{1.0};
     controller.inputs.iq_ref.bind(iq_ref);
-    controller.inputs.id.bind(measured);
-    controller.inputs.iq.bind(measured);
+    controller.inputs.id.bind(id);
+    controller.inputs.iq.bind(iq);
     controller.inputs.omega.bind(omega);
 
     controller.tick();
-    expect_near(controller.outputs.vq, 1.0, "limited q voltage");
-    const auto duty = pmsm::svpwm({controller.outputs.vd, controller.outputs.vq},
-                                 0.0, std::sqrt(3.0));
+    expect_near(controller.outputs.id_filtered, 1.0, "filtered d current");
+    expect_near(controller.outputs.iq_filtered, 2.0, "filtered q current");
+    expect_near(controller.outputs.vd, -3.2, "first SimpleFOC d voltage");
+    expect_near(controller.outputs.vq, 2.9, "first SimpleFOC q voltage");
 
-    iq_ref = 1.0;
     controller.tick();
-    expect_near(controller.outputs.vq, -0.8, "q voltage after anti-windup");
+    expect_near(controller.outputs.vd, -4.7, "second SimpleFOC d voltage");
+    expect_near(controller.outputs.vq, 1.1, "second SimpleFOC q voltage");
 
-    const auto voltage = pmsm::ideal_inverter(duty, std::sqrt(3.0));
+    iq_ref = 20.0;
+    controller.tick();
+    expect_near(controller.outputs.vd, -5.0, "limited SimpleFOC d voltage");
+    expect_near(controller.outputs.vq, 5.0, "limited SimpleFOC q voltage");
+}
+
+void check_voltage_blocks() {
+    const auto duty = pmsm::svpwm({0.0, 1.0}, 0.0, std::sqrt(3.0));
+    const auto voltage = pmsm::drive_blocks::Inverter::ideal_inverter(duty, std::sqrt(3.0));
     const auto dq = pmsm::clarke_park(0.0, voltage.abc);
     expect_near(dq.x(), 0.0, "reconstructed d voltage");
     expect_near(dq.y(), 1.0, "reconstructed q voltage");
@@ -119,9 +133,11 @@ void check_nonideal_inverter() {
 int main() {
     try {
         check_plant();
+        check_simplefoc_current();
         check_voltage_blocks();
         check_nonideal_inverter();
-    } catch (const std::runtime_error&) {
+    } catch (const std::runtime_error& error) {
+        std::cerr << error.what() << '\n';
         return 1;
     }
 }

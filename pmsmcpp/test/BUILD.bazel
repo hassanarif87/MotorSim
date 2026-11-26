@@ -4,12 +4,7 @@ cc_test(
     name = "blocks_test",
     size = "small",
     srcs = ["blocks_test.cpp"],
-    deps = [
-        "//src/blocks:continuous_pmsm",
-        "//src/blocks:current_pi",
-        "//src/blocks:inverter",
-        "//src/blocks:svpwm",
-    ],
+    deps = ["//src/blocks"],
 )
 
 cc_test(

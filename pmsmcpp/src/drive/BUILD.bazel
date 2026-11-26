@@ -8,15 +8,7 @@ cc_library(
     copts = ["-freflection"],
     deps = [
         "//src:configuration",
-        "//src/blocks:constant_current",
-        "//src/blocks:constant_torque",
-        "//src/blocks:continuous_pmsm",
-        "//src/blocks:current_feedback",
-        "//src/blocks:current_pi",
-        "//src/blocks:inverter",
-        "//src/blocks:simplefoc",
-        "//src/blocks:speed_control",
-        "//src/blocks:svpwm",
+        "//src/blocks",
         "//src/graph:block_graph",
     ],
 )

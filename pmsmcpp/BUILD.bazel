@@ -3,7 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 cc_binary(
     name = "pmsm_sim",
     srcs = ["main.cpp"],
-    data = ["configs/pmsm_config.json"],
+    data = ["configs/simplefoc_config.json"],
     copts = ["-freflection"],
     deps = [
         "//src:configuration",

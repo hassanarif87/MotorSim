@@ -4,10 +4,9 @@
 #include "src/blocks/constant_torque.h"
 #include "src/blocks/continuous_pmsm.h"
 #include "src/blocks/current_feedback.h"
-#include "src/blocks/current_pi.h"
+#include "src/blocks/dead_time_compensation.h"
 #include "src/blocks/inverter.h"
 #include "src/blocks/simplefoc.h"
-#include "src/blocks/speed_control.h"
 #include "src/blocks/svpwm.h"
 
 namespace pmsm {
@@ -15,9 +14,7 @@ namespace pmsm {
 Drive::Factory Drive::find_factory(std::string_view type) {
 #define PMSM_BLOCK_TYPES(X) \
     X(ContinuousPmsm) \
-    X(SpeedController) \
     X(Feedback) \
-    X(CurrentController) \
     X(SimpleFocVelocity) \
     X(SimpleFocCurrent) \
     X(Pwm) \

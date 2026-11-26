@@ -1,103 +1,14 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
-package(default_visibility = ["//visibility:public"])
-
 cc_library(
-    name = "signals",
-    hdrs = ["signals.h"],
-    deps = ["@eigen//:eigen"],
-)
-
-cc_library(
-    name = "transforms",
-    hdrs = ["transforms.h"],
-    deps = [":signals"],
-)
-
-cc_library(
-    name = "continuous_pmsm",
-    hdrs = ["continuous_pmsm.h"],
+    name = "blocks",
+    hdrs = glob(["*.h"]),
+    visibility = ["//visibility:public"],
     deps = [
-        ":transforms",
-        "//src/graph:block_ports",
         "//src:configuration",
         "//src:rk4",
         "//src:simulation_executor",
-    ],
-)
-
-cc_library(
-    name = "current_feedback",
-    hdrs = ["current_feedback.h"],
-    deps = [
-        ":transforms",
         "//src/graph:block_ports",
-        "//src:configuration",
-    ],
-)
-
-cc_library(
-    name = "current_pi",
-    hdrs = ["current_pi.h"],
-    deps = [
-        "//src/graph:block_ports",
-        "//src:configuration",
         "@eigen//:eigen",
-    ],
-)
-
-cc_library(
-    name = "svpwm",
-    hdrs = ["svpwm.h"],
-    deps = [
-        ":transforms",
-        "//src/graph:block_ports",
-        "//src:configuration",
-    ],
-)
-
-cc_library(
-    name = "inverter",
-    hdrs = ["inverter.h"],
-    deps = [
-        ":signals",
-        "//src/graph:block_ports",
-        "//src:configuration",
-    ],
-)
-
-cc_library(
-    name = "speed_control",
-    hdrs = ["speed_control.h"],
-    deps = [
-        "//src/graph:block_ports",
-        "//src:configuration",
-    ],
-)
-
-cc_library(
-    name = "constant_current",
-    hdrs = ["constant_current.h"],
-    deps = [
-        "//src/graph:block_ports",
-        "//src:configuration",
-    ],
-)
-
-cc_library(
-    name = "constant_torque",
-    hdrs = ["constant_torque.h"],
-    deps = [
-        "//src/graph:block_ports",
-        "//src:configuration",
-    ],
-)
-
-cc_library(
-    name = "simplefoc",
-    hdrs = ["simplefoc.h"],
-    deps = [
-        "//src/graph:block_ports",
-        "//src:configuration",
     ],
 )

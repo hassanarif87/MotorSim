@@ -7,21 +7,26 @@
 #include <stdexcept>
 
 namespace pmsm {
+namespace {
 
-CsvLogger::CsvNumber::operator std::string() const {
-    char buffer[64];
-    const auto result = std::to_chars(buffer, buffer + sizeof(buffer), value,
+constexpr std::size_t number_capacity = 64;
+
+char* append_number(char* cursor, double value, char separator) {
+    const auto result = std::to_chars(cursor, cursor + number_capacity, value,
         std::chars_format::general, std::numeric_limits<double>::max_digits10);
     if (result.ec != std::errc{}) {
         throw std::runtime_error("Could not format CSV number");
     }
-    return {buffer, result.ptr};
+    *result.ptr = separator;
+    return result.ptr + 1;
 }
+
+}  // namespace
 
 CsvLogger::CsvLogger(std::ostream& output, const SimulationExecutor& executor,
                      const std::vector<Drive::Column>& columns)
     : output_(output), writer_(output), executor_(executor), columns_(columns),
-      row_(columns.size() + 1, CsvNumber(0.0)) {
+      row_((columns.size() + 1) * (number_capacity + 1)) {
     std::vector<std::string> header{"time_s"};
     for (const auto& column : columns_) {
         header.push_back(column.header);
@@ -30,11 +35,13 @@ CsvLogger::CsvLogger(std::ostream& output, const SimulationExecutor& executor,
 }
 
 void CsvLogger::tick() {
-    row_[0] = std::chrono::duration<double>(executor_.now()).count();
-    for (std::size_t i = 0; i < columns_.size(); ++i) {
-        row_[i + 1] = columns_[i].source();
+    char* cursor = append_number(row_.data(),
+        std::chrono::duration<double>(executor_.now()).count(), ',');
+    for (const auto& column : columns_) {
+        cursor = append_number(cursor, column.source(), ',');
     }
-    writer_ << row_;
+    cursor[-1] = '\n';
+    output_.write(row_.data(), cursor - row_.data());
     if (!output_) {
         throw std::runtime_error("Could not write CSV row");
     }
