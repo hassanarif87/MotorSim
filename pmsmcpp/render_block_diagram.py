@@ -10,7 +10,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def render_block_diagram(
-    config_path: str | Path = HERE / "configs/simplefoc_fixed_current_config.json",
+    config_path: str | Path = HERE / "configs/simplefoc_config.json",
     output_path: str | Path = HERE / "configs/pmsm_block_diagram.svg",
 ) -> Path:
     """Render a PMSM configuration to SVG using Graphviz and return its path."""

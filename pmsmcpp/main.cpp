@@ -17,6 +17,9 @@ namespace {
 using Executor = pmsm::SimulationExecutor;
 using Duration = Executor::Duration;
 
+/// @brief Simulates the PMSM model and saves the results to a CSV file.
+/// @param path The path to the output CSV file.
+/// @param config The simulation configuration.
 void simulate(const std::filesystem::path& path, const pmsm::Configuration& config) {
     const auto& sim = config.simulation;
     const Duration log_period = sim.logging_period;
@@ -43,7 +46,7 @@ void simulate(const std::filesystem::path& path, const pmsm::Configuration& conf
     }
 }
 
-}  // namespace
+} // namespace
 
 int main(int argc, char** argv) {
     if (argc < 2 || argc > 3) {
@@ -59,7 +62,8 @@ int main(int argc, char** argv) {
     try {
         config.emplace(pmsm::load_configuration(config_path));
     } catch (const std::exception& error) {
-        std::cerr << "Invalid configuration " << config_path.string() << ": " << error.what() << '\n';
+        std::cerr << "Invalid configuration " << config_path.string() << ": " << error.what()
+                  << '\n';
         return 1;
     }
 

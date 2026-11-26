@@ -2,7 +2,7 @@
 
 ## PWM dead-time compensation
 
-[DeadTimeCompensation](src/blocks/inverter.h) runs after SVPWM and before the inverter captures the duty commands. For each switching leg, it uses the measured phase current to estimate the average duty lost or gained during dead time. Positive current flows into the motor. The block increases duty for positive current and decreases it for negative current.
+[DeadTimeCompensation](src/blocks/dead_time_compensation.h) runs after SVPWM and before the inverter captures the duty commands. For each switching leg, it uses the measured phase current to estimate the average duty lost or gained during dead time. Positive current flows into the motor. The block increases duty for positive current and decreases it for negative current.
 
 ```text
 polarity = clamp(i_phase / zero_current_band_a, -1, 1)

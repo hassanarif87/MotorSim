@@ -4,7 +4,7 @@ Run the commands in this guide from `pmsmcpp`. See the [main README](README.md) 
 
 ## Assemble a model from JSON
 
-Copy [`pmsm_config.json`](pmsm_config.json) to `my_config.json` and edit the
+Copy [`configs/simplefoc_config.json`](configs/simplefoc_config.json) to `my_config.json` and edit the
 following sections.
 
 | Section | What it controls |
@@ -62,6 +62,6 @@ add the connection.
    replace the route into the current PI with
    `["current_pi.iq_ref", "reference.value"]`.
 3. Run `bazel run //:pmsm_sim -- my_config.json /tmp/fixed_current.csv`.
-   The default `iq_ref_a` column reads the PI input and should report 2 A.
+   The default `iq_ref_a` column reports the applied q-axis reference and should report 2 A.
 
 To create a block type that you can instantiate in JSON, see [Add a new C++ block type](README.md#add-a-new-c-block-type).
