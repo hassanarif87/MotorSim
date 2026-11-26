@@ -30,7 +30,9 @@ struct PwmInputs {
 };
 
 /// Normalized phase duty commands published by SVPWM.
-struct DutyOutputs { Duty duty_a, duty_b, duty_c; };
+struct DutyOutputs {
+    Duty duty_a, duty_b, duty_c;
+};
 
 class Pwm {
     struct Parameters {
@@ -39,7 +41,7 @@ class Pwm {
         std::optional<bool> predict_midpoint_angle;
     };
 
-public:
+  public:
     explicit Pwm(const BlockSpec& spec)
         : Pwm(spec.read_parameters<Parameters>(),
               std::chrono::duration<double>(spec.period().value()).count()) {}
@@ -47,18 +49,17 @@ public:
     void tick() {
         // Center the voltage vector over the interval for which the inverter holds it.
         const double theta_mid = inputs.theta.read() + half_period_s_ * inputs.omega.read();
-        const auto duty = svpwm({inputs.vd.read(), inputs.vq.read()},
-                                pole_pairs_ * theta_mid, bus_voltage_);
+        const auto duty =
+            svpwm({inputs.vd.read(), inputs.vq.read()}, pole_pairs_ * theta_mid, bus_voltage_);
         outputs = {duty.abc[0], duty.abc[1], duty.abc[2]};
     }
 
     PwmInputs inputs;
     DutyOutputs outputs;
 
-private:
+  private:
     Pwm(const Parameters& p, double period_s)
-        : pole_pairs_(p.pole_pairs.get()),
-          bus_voltage_(p.bus_voltage_v.get()),
+        : pole_pairs_(p.pole_pairs.get()), bus_voltage_(p.bus_voltage_v.get()),
           half_period_s_(p.predict_midpoint_angle.value_or(true) ? period_s / 2.0 : 0.0) {}
 
     int pole_pairs_;
@@ -66,6 +67,6 @@ private:
     double half_period_s_;
 };
 
-}  // namespace drive_blocks
+} // namespace drive_blocks
 
-}  // namespace pmsm
+} // namespace pmsm

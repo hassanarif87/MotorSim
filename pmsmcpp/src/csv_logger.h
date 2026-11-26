@@ -12,13 +12,13 @@
 namespace pmsm {
 
 class CsvLogger {
-public:
+  public:
     CsvLogger(std::ostream& output, const SimulationExecutor& executor,
               const std::vector<Drive::Column>& columns);
 
     void tick();
 
-private:
+  private:
     std::ostream& output_;
     csv::CSVWriter<std::ostream, false> writer_;
     const SimulationExecutor& executor_;
@@ -26,4 +26,4 @@ private:
     std::vector<char> row_;
 };
 
-}  // namespace pmsm
+} // namespace pmsm

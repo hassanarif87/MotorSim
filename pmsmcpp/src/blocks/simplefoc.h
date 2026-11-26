@@ -16,7 +16,7 @@ struct SimpleFocPidSettings {
 };
 
 class SimpleFocPid {
-public:
+  public:
     SimpleFocPid(SimpleFocPidSettings settings, double limit, double period)
         : settings_(settings), limit_(limit), period_(period) {}
 
@@ -27,21 +27,21 @@ public:
         const double requested = settings_.P.get() * error + integral_ + derivative + feedforward;
         const double limited = std::clamp(requested, -limit_, limit_);
         const double max_change = settings_.output_ramp.get() * period_;
-        last_output_ = max_change > 0
-            ? std::clamp(limited, last_output_ - max_change, last_output_ + max_change)
-            : limited;
+        last_output_ = max_change > 0 ? std::clamp(limited, last_output_ - max_change,
+                                                   last_output_ + max_change)
+                                      : limited;
         last_error_ = error;
         return last_output_;
     }
 
-private:
+  private:
     SimpleFocPidSettings settings_;
     double limit_, period_;
     double integral_ = 0, last_error_ = 0, last_output_ = 0;
 };
 
 class SimpleFocFilter {
-public:
+  public:
     SimpleFocFilter(double time_constant, double period)
         : weight_(period / (time_constant + period)) {}
 
@@ -50,7 +50,7 @@ public:
         return value_;
     }
 
-private:
+  private:
     double weight_;
     double value_ = 0;
 };
@@ -63,7 +63,7 @@ class SimpleFocVelocity {
         FiniteReal target_rad_s;
     };
 
-public:
+  public:
     explicit SimpleFocVelocity(const BlockSpec& spec)
         : SimpleFocVelocity(spec.read_parameters<Parameters>(),
                             std::chrono::duration<double>(spec.period().value()).count()) {}
@@ -73,16 +73,17 @@ public:
         outputs.iq_ref = pid_.update(outputs.omega_ref - outputs.omega_filtered);
     }
 
-    struct Inputs { InputPort<Speed> omega; } inputs;
+    struct Inputs {
+        InputPort<Speed> omega;
+    } inputs;
     struct Outputs {
         Speed omega_ref, omega_filtered;
         Current iq_ref;
     } outputs;
 
-private:
+  private:
     SimpleFocVelocity(const Parameters& p, double period)
-        : outputs{p.target_rad_s.get(), 0, 0},
-          pid_(p.PID_velocity, p.current_limit.get(), period),
+        : outputs{p.target_rad_s.get(), 0, 0}, pid_(p.PID_velocity, p.current_limit.get(), period),
           filter_(p.LPF_velocity_Tf.get(), period) {}
 
     SimpleFocPid pid_;
@@ -100,7 +101,7 @@ class SimpleFocCurrent {
         PositiveReal back_emf_v_per_rad_s;
     };
 
-public:
+  public:
     explicit SimpleFocCurrent(const BlockSpec& spec)
         : SimpleFocCurrent(spec.read_parameters<Parameters>(),
                            std::chrono::duration<double>(spec.period().value()).count()) {}
@@ -128,12 +129,11 @@ public:
         Voltage vd, vq;
     } outputs;
 
-private:
+  private:
     SimpleFocCurrent(const Parameters& p, double period)
         : pid_d_(p.PID_current_d, p.voltage_limit.get(), period),
           pid_q_(p.PID_current_q, p.voltage_limit.get(), period),
-          filter_d_(p.LPF_current_d_Tf.get(), period),
-          filter_q_(p.LPF_current_q_Tf.get(), period),
+          filter_d_(p.LPF_current_d_Tf.get(), period), filter_q_(p.LPF_current_q_Tf.get(), period),
           feedforward_enabled_(p.feedforward_enabled.value_or(true)),
           electrical_inductance_(p.pole_pairs.get() * p.inductance_h.get()),
           back_emf_constant_(p.back_emf_v_per_rad_s.get()) {}
@@ -144,4 +144,4 @@ private:
     double electrical_inductance_, back_emf_constant_;
 };
 
-}  // namespace pmsm::drive_blocks
+} // namespace pmsm::drive_blocks

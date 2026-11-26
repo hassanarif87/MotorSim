@@ -13,12 +13,14 @@ namespace pmsm {
 
 /// Owns block instances and schedules them after resolving the configured model.
 class Drive {
-public:
+  public:
     explicit Drive(const Configuration& config) : executor_(config.simulation.tick_interval) {
-        const auto periodic_count = std::count_if(config.blocks.begin(), config.blocks.end(),
-            [](const BlockSpec& spec) { return spec.rate_hz.has_value(); });
+        const auto periodic_count =
+            std::count_if(config.blocks.begin(), config.blocks.end(),
+                          [](const BlockSpec& spec) { return spec.rate_hz.has_value(); });
         if (static_cast<std::size_t>(periodic_count) >= SimulationExecutor::max_periodic_blocks) {
-            throw std::invalid_argument("Too many periodic blocks with one executor slot reserved for CSV");
+            throw std::invalid_argument(
+                "Too many periodic blocks with one executor slot reserved for CSV");
         }
 
         BlockGraph graph;
@@ -63,21 +65,20 @@ public:
     const std::vector<Column>& columns() const { return columns_; }
     SimulationExecutor& executor() { return executor_; }
 
-private:
+  private:
     template <typename Block>
     static void add(Drive& drive, BlockGraph& graph, const BlockSpec& spec) {
         constexpr bool periodic = TickBlock<Block>;
         constexpr bool continuous = AdvanceBlock<Block, SimulationExecutor::Duration>;
-        constexpr bool constant = requires {
-            requires Block::is_constant;
-        };
-        static_assert(periodic + continuous + constant == 1,
+        constexpr bool constant = requires { requires Block::is_constant; };
+        static_assert(
+            periodic + continuous + constant == 1,
             "A block must implement void tick(), void advance(Duration), or declare is_constant");
 
         const auto period = spec.period();
         if (period.has_value() != periodic) {
-            throw std::invalid_argument(periodic
-                ? "A periodic block requires rate_hz" : "This block has no digital clock");
+            throw std::invalid_argument(periodic ? "A periodic block requires rate_hz"
+                                                 : "This block has no digital clock");
         }
         if (continuous && drive.executor_.has_continuous_block()) {
             throw std::invalid_argument("Exactly one continuous block is supported");
@@ -101,4 +102,4 @@ private:
     std::vector<Column> columns_;
 };
 
-}  // namespace pmsm
+} // namespace pmsm

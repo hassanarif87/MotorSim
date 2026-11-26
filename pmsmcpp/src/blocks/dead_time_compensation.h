@@ -9,9 +9,17 @@
 
 namespace pmsm::drive_blocks {
 
+/// @brief A block that compensates for dead time in PWM signals based on the measured phase
+/// currents. This is done by adjusting the duty cycles to account for the dead time, with a
+/// correction that is proportional to the measured current and limited by a specified zero-current
+/// band.
 class DeadTimeCompensation {
     struct Parameters {
+        /// @brief The dead time in seconds. Must less than half the PWM period.
         NonnegativeReal dead_time_s;
+        /// @brief The zero-current band in amperes. This defines the
+        /// range of current values over which the dead time compensation is applied. Currents
+        /// within this band will have dead time compensation applied.
         PositiveReal zero_current_band_a;
     };
 
@@ -20,11 +28,13 @@ class DeadTimeCompensation {
         InputPort<Current> ia, ib, ic;
     };
 
-public:
+  public:
     explicit DeadTimeCompensation(const BlockSpec& spec)
         : DeadTimeCompensation(spec.read_parameters<Parameters>(),
                                std::chrono::duration<double>(spec.period().value()).count()) {}
 
+    /// @brief Updates the output duty cycles based on the current input duty cycles and measured
+    /// phase currents.
     void tick() {
         outputs = {correct(inputs.duty_a.read(), inputs.ia.read()),
                    correct(inputs.duty_b.read(), inputs.ib.read()),
@@ -32,17 +42,24 @@ public:
     }
 
     Inputs inputs;
-    struct Outputs { Duty duty_a, duty_b, duty_c; } outputs;
+    struct Outputs {
+        Duty duty_a, duty_b, duty_c;
+    } outputs;
 
-private:
+  private:
     DeadTimeCompensation(const Parameters& parameters, double period)
         : dead_fraction_(parameters.dead_time_s.get() / period),
           zero_current_band_(parameters.zero_current_band_a.get()) {
         if (dead_fraction_ >= 0.5) {
-            throw std::invalid_argument("Compensated dead time must be less than half the PWM period");
+            throw std::invalid_argument(
+                "Compensated dead time must be less than half the PWM period");
         }
     }
 
+    /// @brief Corrects the duty cycle based on the measured current and dead time.
+    /// @param duty The normalized duty cycle for the phase, in the range [0, 1].
+    /// @param current The measured current for the phase in amperes.
+    /// @return The corrected duty cycle.
     double correct(double duty, double current) const {
         // A fully on or fully off leg has no transitions to compensate.
         if (duty <= 0.0 || duty >= 1.0) {
@@ -55,4 +72,4 @@ private:
     double dead_fraction_, zero_current_band_;
 };
 
-}  // namespace pmsm::drive_blocks
+} // namespace pmsm::drive_blocks

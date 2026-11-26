@@ -2,6 +2,8 @@
 
 #include <Eigen/Core>
 
+#include "src/graph/block_ports.h"
+
 namespace pmsm {
 
 struct DqCurrent {
@@ -26,4 +28,12 @@ struct DutyCycles {
     Eigen::Vector3d abc;
 };
 
-}  // namespace pmsm
+namespace drive_blocks {
+
+/// Motor-neutral phase voltages published by inverter blocks, in volts.
+struct PhaseVoltageOutputs {
+    Voltage va, vb, vc;
+};
+
+} // namespace drive_blocks
+} // namespace pmsm

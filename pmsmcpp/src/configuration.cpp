@@ -27,12 +27,13 @@ SimulationExecutor::Duration parse_duration(double seconds) {
     const double rounded = std::round(nanoseconds);
     if (rounded < 1 || rounded >= static_cast<double>(Duration::max().count()) ||
         std::abs(nanoseconds - rounded) > 1e-6) {
-        throw std::invalid_argument("duration_s must represent a positive whole number of nanoseconds");
+        throw std::invalid_argument(
+            "duration_s must represent a positive whole number of nanoseconds");
     }
     return Duration(static_cast<Duration::rep>(rounded));
 }
 
-}  // namespace
+} // namespace
 
 SimulationConfig::SimulationConfig(RateHz tick_rate_hz, PositiveReal duration_s, RateHz log_rate_hz)
     : tick_interval(config_value::period_from_rate(tick_rate_hz)),
@@ -54,4 +55,4 @@ Configuration load_configuration(const std::filesystem::path& path) {
     };
 }
 
-}  // namespace pmsm
+} // namespace pmsm

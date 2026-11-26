@@ -32,17 +32,20 @@ struct Trace {
     }
 
     void speed() {
-        if (executor.now() == 0ns) events_at_zero.push_back('s');
+        if (executor.now() == 0ns)
+            events_at_zero.push_back('s');
     }
 
     void current() {
-        if (executor.now() == 0ns) events_at_zero.push_back('c');
+        if (executor.now() == 0ns)
+            events_at_zero.push_back('c');
         current_ticks.push_back(executor.now());
         output_ready = output_ready && std::abs(published - state) < 1e-12;
     }
 
     void pwm() {
-        if (executor.now() == 0ns) events_at_zero.push_back('p');
+        if (executor.now() == 0ns)
+            events_at_zero.push_back('p');
         ++input;
     }
 };
@@ -62,7 +65,7 @@ static_assert(pmsm::AdvanceBlock<Trace, Executor::Duration>);
 static_assert(!pmsm::TickBlock<WrongSignatures>);
 static_assert(!pmsm::AdvanceBlock<WrongSignatures, Executor::Duration>);
 
-}  // namespace
+} // namespace
 
 int main() {
     Executor executor(2ns);
@@ -82,9 +85,8 @@ int main() {
 
     if (trace.intervals != std::vector<Executor::Duration>{2ns, 2ns, 2ns, 2ns, 2ns, 2ns, 1ns} ||
         trace.current_ticks != std::vector<Executor::Duration>{0ns, 4ns, 8ns, 12ns} ||
-        trace.events_at_zero != std::vector<char>{'s', 'c', 'p'} ||
-        executor.now() != 13ns || trace.stages != 28 ||
-        !trace.output_ready || std::abs(trace.state - 21.0) > 1e-12) {
+        trace.events_at_zero != std::vector<char>{'s', 'c', 'p'} || executor.now() != 13ns ||
+        trace.stages != 28 || !trace.output_ready || std::abs(trace.state - 21.0) > 1e-12) {
         std::cerr << "Unexpected callback order, integration steps, or held-input result\n";
         return 1;
     }

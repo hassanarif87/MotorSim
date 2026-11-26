@@ -31,9 +31,11 @@ struct Finite {
     }
 };
 
+/// @brief Nanoseconds per second constant for rate calculations.
 inline constexpr auto nanoseconds_per_second =
     std::chrono::duration_cast<SimulationExecutor::Duration>(std::chrono::seconds(1)).count();
 
+/// @brief Validator for rates.
 struct ExactRate {
     static rfl::Result<int> validate(int rate) noexcept {
         if (rate <= 0 || nanoseconds_per_second % rate != 0) {
@@ -43,24 +45,29 @@ struct ExactRate {
     }
 };
 
-}  // namespace config_value
+} // namespace config_value
 
+/// @brief Type aliases for configuration values with validation rules.
 using FiniteReal = rfl::Validator<double, config_value::Finite>;
 using PositiveReal = rfl::Validator<double, config_value::Finite, rfl::ExclusiveMinimum<0>>;
 using NonnegativeReal = rfl::Validator<double, config_value::Finite, rfl::Minimum<0>>;
 using PositiveInt = rfl::Validator<int, rfl::Minimum<1>>;
 using RateHz = rfl::Validator<int, config_value::ExactRate>;
-using Priority = rfl::Validator<int, rfl::Minimum<0>,
-                               rfl::ExclusiveMaximum<std::numeric_limits<int>::max()>>;
+using Priority =
+    rfl::Validator<int, rfl::Minimum<0>, rfl::ExclusiveMaximum<std::numeric_limits<int>::max()>>;
 
 namespace config_value {
 
+/// @brief Calculates the period for a given rate.
+/// @param rate The rate in Hz for which to calculate the period. Comes from the config.
+/// @return Duration representing the period in nanoseconds corresponding to the given rate.
 inline SimulationExecutor::Duration period_from_rate(RateHz rate) {
     return SimulationExecutor::Duration(nanoseconds_per_second / rate.get());
 }
 
-}  // namespace config_value
+} // namespace config_value
 
+/// @brief Represents the specification of a block in the simulation.
 struct BlockSpec {
     std::string name;
     std::string type;
@@ -83,6 +90,7 @@ struct BlockSpec {
     }
 };
 
+/// @brief Represents the top-level simulation parameters.
 struct SimulationConfig {
     SimulationConfig(RateHz tick_rate_hz, PositiveReal duration_s, RateHz log_rate_hz);
 
@@ -91,6 +99,7 @@ struct SimulationConfig {
     SimulationExecutor::Duration logging_period;
 };
 
+/// @brief Represents the entire configuration for a simulation.
 struct Configuration {
     SimulationConfig simulation;
     std::vector<BlockSpec> blocks;
@@ -98,6 +107,13 @@ struct Configuration {
     Connections log_columns;
 };
 
+/// @brief Load a configuration from a JSON file, config file contains:
+///
+/// - Executable simulation parameters (tick rate, duration, log rate)
+///
+/// - Block specifications (name, type, parameters, optional rate and priority)
+/// @param path Path to the JSON config file
+/// @return Loaded configuration
 Configuration load_configuration(const std::filesystem::path& path);
 
-}  // namespace pmsm
+} // namespace pmsm

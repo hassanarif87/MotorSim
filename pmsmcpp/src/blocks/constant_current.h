@@ -7,13 +7,18 @@ namespace pmsm {
 
 namespace drive_blocks {
 
-/// Fixed current published by the source, in amperes.
-struct ConstantCurrentOutputs { Current value; };
+/// @brief Fixed current published by the source, in amperes.
+struct ConstantCurrentOutputs {
+    Current value;
+};
 
 class ConstantCurrent {
-    struct Parameters { FiniteReal value_a; };
+    struct Parameters {
+        /// @brief The constant current value in amperes.
+        FiniteReal value_a;
+    };
 
-public:
+  public:
     static constexpr bool is_constant = true;
 
     explicit ConstantCurrent(const BlockSpec& spec)
@@ -23,6 +28,6 @@ public:
     ConstantCurrentOutputs outputs;
 };
 
-}  // namespace drive_blocks
+} // namespace drive_blocks
 
-}  // namespace pmsm
+} // namespace pmsm

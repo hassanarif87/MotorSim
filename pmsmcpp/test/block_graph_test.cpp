@@ -28,7 +28,7 @@ bool rejects(const pmsm::Connections& connections, std::string_view expected) {
     return false;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
     Inputs inputs;
@@ -40,8 +40,7 @@ int main() {
     }
     const bool initial_value_correct = inputs.signal.read() == 1.0;
     outputs.signal = 2.0;
-    if (!initial_value_correct || inputs.signal.read() != 2.0 ||
-        !rejects({}, "Missing source") ||
+    if (!initial_value_correct || inputs.signal.read() != 2.0 || !rejects({}, "Missing source") ||
         !rejects({{"block.missing", "block.signal"}}, "Unknown input") ||
         !rejects({{"block.signal", "block.missing"}}, "Unknown output") ||
         !rejects({{"block.signal", "block.count"}}, "Incompatible port types") ||

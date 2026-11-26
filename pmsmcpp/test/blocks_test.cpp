@@ -128,7 +128,7 @@ void check_nonideal_inverter() {
     expect_near(inverter.outputs.vb, -11.96, "clipped phase B without dead time");
 }
 
-}  // namespace
+} // namespace
 
 int main() {
     try {

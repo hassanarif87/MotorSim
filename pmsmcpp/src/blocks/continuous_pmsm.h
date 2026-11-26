@@ -41,37 +41,38 @@ struct MotorOutput {
 };
 
 class PmsmPlant {
-public:
+  public:
     explicit PmsmPlant(MotorParameters parameters) : parameters_(parameters) {}
 
     int pole_pairs() const { return parameters_.pole_pairs.get(); }
 
     MotorOutput output(const MotorState& state) const {
         const double theta_e = parameters_.pole_pairs.get() * state.theta;
-        return {{inverse_clarke_park(theta_e, state.id, state.iq)},
-                state.omega, state.theta};
+        return {{inverse_clarke_park(theta_e, state.id, state.iq)}, state.omega, state.theta};
     }
 
     MotorState derivative(const MotorState& state, const MotorInput& input) const {
         const auto& p = parameters_;
         const double omega_e = p.pole_pairs.get() * state.omega;
         const auto voltage = clarke_park(p.pole_pairs.get() * state.theta, input.voltage.abc);
-        const double iq_dot =
-            (voltage.y() - p.resistance_ohm.get() * state.iq - omega_e * p.inductance_h.get() * state.id
-             - p.back_emf_v_per_rad_s.get() * state.omega) / p.inductance_h.get();
-        const double id_dot =
-            (voltage.x() - p.resistance_ohm.get() * state.id + omega_e * p.inductance_h.get() * state.iq)
-            / p.inductance_h.get();
+        const double iq_dot = (voltage.y() - p.resistance_ohm.get() * state.iq -
+                               omega_e * p.inductance_h.get() * state.id -
+                               p.back_emf_v_per_rad_s.get() * state.omega) /
+                              p.inductance_h.get();
+        const double id_dot = (voltage.x() - p.resistance_ohm.get() * state.id +
+                               omega_e * p.inductance_h.get() * state.iq) /
+                              p.inductance_h.get();
         const double torque = 1.5 * p.torque_constant_nm_per_a.get() * state.iq;
         if (p.lock_rotor.value_or(false)) {
             return {iq_dot, id_dot, 0.0, 0.0};
         }
         const double omega_dot =
-            (torque - input.load_torque - p.viscous_friction_nm_per_rad_s.get() * state.omega) / p.inertia_kg_m2.get();
+            (torque - input.load_torque - p.viscous_friction_nm_per_rad_s.get() * state.omega) /
+            p.inertia_kg_m2.get();
         return {iq_dot, id_dot, omega_dot, state.omega};
     }
 
-private:
+  private:
     MotorParameters parameters_;
 };
 
@@ -91,7 +92,7 @@ struct PlantOutputs {
 };
 
 class ContinuousPmsm {
-public:
+  public:
     explicit ContinuousPmsm(const BlockSpec& spec)
         : ContinuousPmsm(spec.read_parameters<MotorParameters>()) {}
 
@@ -113,8 +114,8 @@ public:
             return State(rate.iq, rate.id, rate.omega, rate.theta);
         };
 
-        const auto accepted = rk4_step(initial, std::chrono::duration<double>(interval).count(),
-                                       derivative);
+        const auto accepted =
+            rk4_step(initial, std::chrono::duration<double>(interval).count(), derivative);
         state_ = {accepted[0], accepted[1], accepted[2], accepted[3]};
         publish();
     }
@@ -122,18 +123,19 @@ public:
     PlantInputs inputs;
     PlantOutputs outputs;
 
-private:
+  private:
     using State = Eigen::Vector4d;
 
     void publish() {
         const auto out = plant_.output(state_);
-        outputs = {out.current.abc[0], out.current.abc[1], out.current.abc[2], out.omega, out.theta};
+        outputs = {out.current.abc[0], out.current.abc[1], out.current.abc[2], out.omega,
+                   out.theta};
     }
 
     PmsmPlant plant_;
     MotorState state_;
 };
 
-}  // namespace drive_blocks
+} // namespace drive_blocks
 
-}  // namespace pmsm
+} // namespace pmsm
