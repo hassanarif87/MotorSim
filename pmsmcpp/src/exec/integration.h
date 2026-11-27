@@ -29,11 +29,17 @@ class IntegrationExecutor {
         // Current state size, on add.
         const Index offset = this->state_.size();
 
-        // Resize the state vector to accommodate the new block's state.
-        this->state_.conservativeResize(offset + B::state_size);
+        const IntegrableBlock registration{
+            offset,
+            Publish::bind<&Registration<B>::publish>(block),
+            Derivative::bind<&Registration<B>::derivative>(block),
+        };
 
-        // Set the initial state for the new block.
-        this->state_.segment<B::state_size>(offset) = initial_state;
+        // Allocate space for both before committing the registration.
+        blocks_.reserve(blocks_.size() + 1);
+        state_.conservativeResize(offset + B::state_size);
+        state_.segment<B::state_size>(offset) = initial_state;
+        blocks_.push_back(registration);
     }
 
     /// @brief Advances the simulation by the specified time interval.
@@ -46,6 +52,7 @@ class IntegrationExecutor {
 
         // Lambda function to compute the full derivative of the state vector.
         auto full_derivative = [this](const Eigen::VectorXd& trial_state) {
+            publish(trial_state);
             VectorXd state_dot(trial_state.size());
 
             for (const auto& block : blocks_) {
@@ -86,10 +93,13 @@ class IntegrationExecutor {
     struct Registration {
 
         /// @brief Static function to publish a block outputs at the given state.
-        static void publish(B& block, const double* state) { block.publish(StateView<B>(state)); }
+        static void publish(B& block, const double* state) {
+            StateView<B> slice{state};
+            block.publish(slice);
+        }
 
         /// @brief Static function to compute the derivative of a block's state.
-        static void derivative(B& block, const double* state, double* state_dot) {
+        static void derivative(const B& block, const double* state, double* state_dot) {
             StateView<B> slice{state};
             MutableStateView<B> state_dot_slice{state_dot};
             block.derivative(slice, state_dot_slice);
