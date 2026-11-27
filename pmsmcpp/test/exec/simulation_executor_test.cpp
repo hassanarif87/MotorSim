@@ -1,10 +1,12 @@
 #include <chrono>
 #include <cmath>
-#include <iostream>
+#include <stdexcept>
 #include <vector>
 
-#include "src/math/rk4.h"
+#include "gtest/gtest.h"
+
 #include "src/exec/simulation_executor.h"
+#include "src/math/rk4.h"
 
 namespace {
 
@@ -65,29 +67,31 @@ static_assert(pmsm::AdvanceBlock<Trace, Executor::Duration>);
 static_assert(!pmsm::TickBlock<WrongSignatures>);
 static_assert(!pmsm::AdvanceBlock<WrongSignatures, Executor::Duration>);
 
-} // namespace
+TEST(SimulationExecutorTest, RejectsUnalignedPeriod) {
+    Executor executor(2ns);
+    Trace trace{executor, {}, {}, {}};
+    CurrentTick current{trace};
+    EXPECT_THROW(executor.register_block(current, 5ns, 1), std::invalid_argument);
+}
 
-int main() {
+TEST(SimulationExecutorTest, RunsCallbacksInOrderAndIntegratesPartialStep) {
     Executor executor(2ns);
     Trace trace{executor, {}, {}, {}};
     CurrentTick current{trace};
     executor.register_block(trace);
-    try {
-        executor.register_block(current, 5ns, 1);
-        std::cerr << "Expected an unaligned period to be rejected\n";
-        return 1;
-    } catch (const std::invalid_argument&) {
-    }
     executor.register_tick(6ns, 2, Executor::TickCallback::bind<&Trace::pwm>(trace));
     executor.register_block(current, 4ns, 1);
     executor.register_tick(20ns, 0, Executor::TickCallback::bind<&Trace::speed>(trace));
     executor.run(13ns);
 
-    if (trace.intervals != std::vector<Executor::Duration>{2ns, 2ns, 2ns, 2ns, 2ns, 2ns, 1ns} ||
-        trace.current_ticks != std::vector<Executor::Duration>{0ns, 4ns, 8ns, 12ns} ||
-        trace.events_at_zero != std::vector<char>{'s', 'c', 'p'} || executor.now() != 13ns ||
-        trace.stages != 28 || !trace.output_ready || std::abs(trace.state - 21.0) > 1e-12) {
-        std::cerr << "Unexpected callback order, integration steps, or held-input result\n";
-        return 1;
-    }
+    EXPECT_EQ(trace.intervals,
+              (std::vector<Executor::Duration>{2ns, 2ns, 2ns, 2ns, 2ns, 2ns, 1ns}));
+    EXPECT_EQ(trace.current_ticks, (std::vector<Executor::Duration>{0ns, 4ns, 8ns, 12ns}));
+    EXPECT_EQ(trace.events_at_zero, (std::vector<char>{'s', 'c', 'p'}));
+    EXPECT_EQ(executor.now(), 13ns);
+    EXPECT_EQ(trace.stages, 28);
+    EXPECT_TRUE(trace.output_ready);
+    EXPECT_NEAR(trace.state, 21.0, 1e-12);
 }
+
+} // namespace

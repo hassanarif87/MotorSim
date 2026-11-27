@@ -1,6 +1,7 @@
-#include <iostream>
 #include <stdexcept>
 #include <string_view>
+
+#include "gtest/gtest.h"
 
 #include "src/graph/block_graph.h"
 
@@ -15,7 +16,7 @@ struct Outputs {
     int count = 0;
 };
 
-bool rejects(const pmsm::Connections& connections, std::string_view expected) {
+void expect_rejection(const pmsm::Connections& connections, std::string_view expected) {
     Inputs inputs;
     Outputs outputs;
     pmsm::BlockGraph graph;
@@ -23,14 +24,14 @@ bool rejects(const pmsm::Connections& connections, std::string_view expected) {
     try {
         graph.connect(connections);
     } catch (const std::invalid_argument& error) {
-        return std::string_view(error.what()).find(expected) != std::string_view::npos;
+        EXPECT_NE(std::string_view(error.what()).find(expected), std::string_view::npos)
+            << error.what();
+        return;
     }
-    return false;
+    ADD_FAILURE() << "Expected connection to be rejected with: " << expected;
 }
 
-} // namespace
-
-int main() {
+TEST(BlockGraphTest, BindingRemainsLiveAfterGraphDestruction) {
     Inputs inputs;
     Outputs outputs{1.0, 0};
     {
@@ -38,15 +39,18 @@ int main() {
         graph.add("block", inputs, outputs);
         graph.connect({{"block.signal", "block.signal"}});
     }
-    const bool initial_value_correct = inputs.signal.read() == 1.0;
+    EXPECT_EQ(inputs.signal.read(), 1.0);
     outputs.signal = 2.0;
-    if (!initial_value_correct || inputs.signal.read() != 2.0 || !rejects({}, "Missing source") ||
-        !rejects({{"block.missing", "block.signal"}}, "Unknown input") ||
-        !rejects({{"block.signal", "block.missing"}}, "Unknown output") ||
-        !rejects({{"block.signal", "block.count"}}, "Incompatible port types") ||
-        !rejects({{"block.signal", "block.signal"}, {"block.signal", "block.signal"}},
-                 "Multiple sources")) {
-        std::cerr << "Unexpected graph binding or validation result\n";
-        return 1;
-    }
+    EXPECT_EQ(inputs.signal.read(), 2.0);
 }
+
+TEST(BlockGraphTest, RejectsInvalidConnections) {
+    expect_rejection({}, "Missing source");
+    expect_rejection({{"block.missing", "block.signal"}}, "Unknown input");
+    expect_rejection({{"block.signal", "block.missing"}}, "Unknown output");
+    expect_rejection({{"block.signal", "block.count"}}, "Incompatible port types");
+    expect_rejection({{"block.signal", "block.signal"}, {"block.signal", "block.signal"}},
+                     "Multiple sources");
+}
+
+} // namespace

@@ -1,7 +1,7 @@
 #include <cmath>
-#include <iostream>
-#include <stdexcept>
 #include <string>
+
+#include "gtest/gtest.h"
 
 #include "src/blocks/inverter.h"
 #include "src/blocks/continuous_pmsm.h"
@@ -10,34 +10,27 @@
 
 namespace {
 
-void expect_near(double actual, double expected, const char* signal) {
-    if (!std::isfinite(actual) || std::abs(actual - expected) > 1e-10) {
-        std::cerr << signal << ": got " << actual << ", expected " << expected << '\n';
-        throw std::runtime_error("Block result differs from reference");
-    }
-}
-
-void check_plant() {
+TEST(BlocksTest, PlantDynamicsAndOutput) {
     const pmsm::PmsmPlant plant({0.5, 0.25, 2, 0.2, 0.2, 0.1, 0.01});
     const pmsm::MotorState state{3.0, 4.0, 5.0, std::atan(1.0)};
     const Eigen::Vector3d abc(0.0, std::sqrt(3.0), -std::sqrt(3.0));
     const auto rate = plant.derivative(state, {{abc}, 0.1});
-    expect_near(rate.iq, -50.0, "iq derivative");
-    expect_near(rate.id, 30.0, "id derivative");
-    expect_near(rate.omega, 7.5, "omega derivative");
-    expect_near(rate.theta, 5.0, "theta derivative");
+    EXPECT_NEAR(rate.iq, -50.0, 1e-10) << "iq derivative";
+    EXPECT_NEAR(rate.id, 30.0, 1e-10) << "id derivative";
+    EXPECT_NEAR(rate.omega, 7.5, 1e-10) << "omega derivative";
+    EXPECT_NEAR(rate.theta, 5.0, 1e-10) << "theta derivative";
 
     const auto shifted = plant.derivative(state, {{abc.array() + 24.0}, 0.1});
-    expect_near(shifted.iq, rate.iq, "iq derivative with common mode");
-    expect_near(shifted.id, rate.id, "id derivative with common mode");
+    EXPECT_NEAR(shifted.iq, rate.iq, 1e-10) << "iq derivative with common mode";
+    EXPECT_NEAR(shifted.id, rate.id, 1e-10) << "id derivative with common mode";
 
     const auto output = plant.output(state);
-    expect_near(output.current.abc[0], -3.0, "phase A current");
-    expect_near(output.current.abc[1], 1.5 + 2.0 * std::sqrt(3.0), "phase B current");
-    expect_near(output.current.abc.sum(), 0.0, "phase current sum");
+    EXPECT_NEAR(output.current.abc[0], -3.0, 1e-10) << "phase A current";
+    EXPECT_NEAR(output.current.abc[1], 1.5 + 2.0 * std::sqrt(3.0), 1e-10) << "phase B current";
+    EXPECT_NEAR(output.current.abc.sum(), 0.0, 1e-10) << "phase current sum";
 }
 
-void check_simplefoc_current() {
+TEST(BlocksTest, SimpleFocCurrentControl) {
     using namespace pmsm::drive_blocks;
     rfl::Generic::Object pid;
     pid.insert(std::string("P"), rfl::Generic(2.0));
@@ -69,30 +62,30 @@ void check_simplefoc_current() {
     controller.inputs.omega.bind(omega);
 
     controller.tick();
-    expect_near(controller.outputs.id_filtered, 1.0, "filtered d current");
-    expect_near(controller.outputs.iq_filtered, 2.0, "filtered q current");
-    expect_near(controller.outputs.vd, -3.2, "first SimpleFOC d voltage");
-    expect_near(controller.outputs.vq, 2.9, "first SimpleFOC q voltage");
+    EXPECT_NEAR(controller.outputs.id_filtered, 1.0, 1e-10) << "filtered d current";
+    EXPECT_NEAR(controller.outputs.iq_filtered, 2.0, 1e-10) << "filtered q current";
+    EXPECT_NEAR(controller.outputs.vd, -3.2, 1e-10) << "first SimpleFOC d voltage";
+    EXPECT_NEAR(controller.outputs.vq, 2.9, 1e-10) << "first SimpleFOC q voltage";
 
     controller.tick();
-    expect_near(controller.outputs.vd, -4.7, "second SimpleFOC d voltage");
-    expect_near(controller.outputs.vq, 1.1, "second SimpleFOC q voltage");
+    EXPECT_NEAR(controller.outputs.vd, -4.7, 1e-10) << "second SimpleFOC d voltage";
+    EXPECT_NEAR(controller.outputs.vq, 1.1, 1e-10) << "second SimpleFOC q voltage";
 
     iq_ref = 20.0;
     controller.tick();
-    expect_near(controller.outputs.vd, -5.0, "limited SimpleFOC d voltage");
-    expect_near(controller.outputs.vq, 5.0, "limited SimpleFOC q voltage");
+    EXPECT_NEAR(controller.outputs.vd, -5.0, 1e-10) << "limited SimpleFOC d voltage";
+    EXPECT_NEAR(controller.outputs.vq, 5.0, 1e-10) << "limited SimpleFOC q voltage";
 }
 
-void check_voltage_blocks() {
+TEST(BlocksTest, ReconstructsVoltageThroughIdealInverter) {
     const auto duty = pmsm::svpwm({0.0, 1.0}, 0.0, std::sqrt(3.0));
     const auto voltage = pmsm::drive_blocks::Inverter::ideal_inverter(duty, std::sqrt(3.0));
     const auto dq = pmsm::clarke_park(0.0, voltage.abc);
-    expect_near(dq.x(), 0.0, "reconstructed d voltage");
-    expect_near(dq.y(), 1.0, "reconstructed q voltage");
+    EXPECT_NEAR(dq.x(), 0.0, 1e-10) << "reconstructed d voltage";
+    EXPECT_NEAR(dq.y(), 1.0, 1e-10) << "reconstructed q voltage";
 }
 
-void check_nonideal_inverter() {
+TEST(BlocksTest, NonIdealInverterLatchingAndVoltageDrop) {
     using namespace pmsm::drive_blocks;
     rfl::Generic::Object parameters;
     parameters.insert(std::string("bus_voltage_v"), rfl::Generic(24.0));
@@ -114,30 +107,18 @@ void check_nonideal_inverter() {
     inverter.inputs.ic.bind(ic);
 
     inverter.tick();
-    expect_near(inverter.outputs.va, 0.0, "initial latched phase A");
+    EXPECT_NEAR(inverter.outputs.va, 0.0, 1e-10) << "initial latched phase A";
     a = 1.2;
     b = -0.2;
     ia = 2.0;
     ib = -2.0;
     inverter.tick();
-    expect_near(inverter.outputs.va, 5.72, "latched phase A with voltage drop");
-    expect_near(inverter.outputs.vb, -5.72, "latched phase B with voltage drop");
-    expect_near(inverter.outputs.vc, 0.0, "latched phase C");
+    EXPECT_NEAR(inverter.outputs.va, 5.72, 1e-10) << "latched phase A with voltage drop";
+    EXPECT_NEAR(inverter.outputs.vb, -5.72, 1e-10) << "latched phase B with voltage drop";
+    EXPECT_NEAR(inverter.outputs.vc, 0.0, 1e-10) << "latched phase C";
     inverter.tick();
-    expect_near(inverter.outputs.va, 11.96, "clipped phase A without dead time");
-    expect_near(inverter.outputs.vb, -11.96, "clipped phase B without dead time");
+    EXPECT_NEAR(inverter.outputs.va, 11.96, 1e-10) << "clipped phase A without dead time";
+    EXPECT_NEAR(inverter.outputs.vb, -11.96, 1e-10) << "clipped phase B without dead time";
 }
 
 } // namespace
-
-int main() {
-    try {
-        check_plant();
-        check_simplefoc_current();
-        check_voltage_blocks();
-        check_nonideal_inverter();
-    } catch (const std::runtime_error& error) {
-        std::cerr << error.what() << '\n';
-        return 1;
-    }
-}

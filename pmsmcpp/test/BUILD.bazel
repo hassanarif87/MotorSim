@@ -4,16 +4,20 @@ cc_test(
     name = "blocks_test",
     size = "small",
     srcs = ["blocks_test.cpp"],
-    deps = ["//src/blocks"],
+    deps = [
+        "//src/blocks",
+        "@googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "simulation_executor_test",
     size = "small",
-    srcs = ["simulation_executor_test.cpp"],
+    srcs = ["exec/simulation_executor_test.cpp"],
     deps = [
-        "//src/math:rk4",
         "//src/exec:simulation_executor",
+        "//src/math:rk4",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -22,5 +26,8 @@ cc_test(
     size = "small",
     srcs = ["block_graph_test.cpp"],
     copts = ["-freflection"],
-    deps = ["//src/graph:block_graph"],
+    deps = [
+        "//src/graph:block_graph",
+        "@googletest//:gtest_main",
+    ],
 )
