@@ -1,12 +1,38 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "block_interface",
+    hdrs = ["block_interface.h"],
+    deps = ["@eigen//:eigen"],
+)
+
+cc_library(
+    name = "delegate",
+    hdrs = ["delegate.h"],
+)
+
+cc_library(
+    name = "integration",
+    hdrs = ["integration.h"],
+    deps = [
+        ":block_interface",
+        ":delegate",
+        "//src/math:rk4",
+        "@eigen//:eigen",
+    ],
+)
+
+cc_library(
     name = "simulation_executor",
     hdrs = ["simulation_executor.h"],
     visibility = [
         "//src/blocks:__pkg__",
         "//test:__pkg__",
         "//:__pkg__",
+    ],
+    deps = [
+        ":block_interface",
+        ":delegate",
     ],
 )
 

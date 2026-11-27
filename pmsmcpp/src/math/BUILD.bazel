@@ -5,6 +5,7 @@ cc_library(
     hdrs = ["rk4.h"],
     visibility = [
         "//src/blocks:__pkg__",
+        "//src/exec:__pkg__",
         "//test:__pkg__",
     ],
 )
