@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/graph/block_ports.h"
-#include "src/configuration.h"
+#include "src/exec/configuration.h"
 
 namespace pmsm {
 

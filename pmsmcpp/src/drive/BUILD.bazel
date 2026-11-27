@@ -4,10 +4,10 @@ cc_library(
     name = "drive",
     srcs = ["block_catalog.cpp"],
     hdrs = ["drive.h"],
-    visibility = ["//:__pkg__", "//src:__pkg__"],
+    visibility = ["//:__pkg__", "//src/exec:__pkg__"],
     copts = ["-freflection"],
     deps = [
-        "//src:configuration",
+        "//src/exec:configuration",
         "//src/blocks",
         "//src/graph:block_graph",
     ],

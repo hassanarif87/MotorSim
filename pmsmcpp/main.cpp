@@ -7,10 +7,10 @@
 #include <stdexcept>
 #include <string>
 
-#include "src/configuration.h"
-#include "src/csv_logger.h"
+#include "src/exec/configuration.h"
+#include "src/exec/csv_logger.h"
 #include "src/drive/drive.h"
-#include "src/simulation_executor.h"
+#include "src/exec/simulation_executor.h"
 
 namespace {
 

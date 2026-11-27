@@ -4,7 +4,7 @@
 #include <chrono>
 #include <optional>
 
-#include "src/configuration.h"
+#include "src/exec/configuration.h"
 #include "src/graph/block_ports.h"
 
 namespace pmsm::drive_blocks {
@@ -55,6 +55,7 @@ class SimpleFocFilter {
     double value_ = 0;
 };
 
+/// @brief Implements a fixed-period SimpleFOC velocity control loop, producing a reference current for the q-axis.
 class SimpleFocVelocity {
     struct Parameters {
         SimpleFocPidSettings PID_velocity;
@@ -90,6 +91,7 @@ class SimpleFocVelocity {
     SimpleFocFilter filter_;
 };
 
+/// @brief Implements a fixed-period SimpleFOC current control loop, producing voltage commands for the d and q axes.
 class SimpleFocCurrent {
     struct Parameters {
         SimpleFocPidSettings PID_current_d, PID_current_q;

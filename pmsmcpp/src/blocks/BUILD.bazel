@@ -5,9 +5,9 @@ cc_library(
     hdrs = glob(["*.h"]),
     visibility = ["//visibility:public"],
     deps = [
-        "//src:configuration",
-        "//src:rk4",
-        "//src:simulation_executor",
+        "//src/exec:configuration",
+        "//src/math:rk4",
+        "//src/exec:simulation_executor",
         "//src/graph:block_ports",
         "@eigen//:eigen",
     ],

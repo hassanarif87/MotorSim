@@ -6,9 +6,9 @@ cc_binary(
     data = ["configs/simplefoc_config.json"],
     copts = ["-freflection"],
     deps = [
-        "//src:configuration",
-        "//src:csv_logger",
-        "//src:simulation_executor",
+        "//src/exec:configuration",
+        "//src/exec:csv_logger",
+        "//src/exec:simulation_executor",
         "//src/drive",
     ],
 )

@@ -1,0 +1,10 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "rk4",
+    hdrs = ["rk4.h"],
+    visibility = [
+        "//src/blocks:__pkg__",
+        "//test:__pkg__",
+    ],
+)

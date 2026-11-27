@@ -16,7 +16,7 @@
 #include <rfl/from_generic.hpp>
 
 #include "src/graph/connections.h"
-#include "src/simulation_executor.h"
+#include "src/exec/simulation_executor.h"
 
 namespace pmsm {
 

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "src/graph/block_graph.h"
-#include "src/configuration.h"
+#include "src/exec/configuration.h"
 
 namespace pmsm {
 

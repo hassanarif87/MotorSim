@@ -5,9 +5,9 @@
 
 #include "src/graph/block_ports.h"
 #include "src/blocks/transforms.h"
-#include "src/configuration.h"
-#include "src/rk4.h"
-#include "src/simulation_executor.h"
+#include "src/exec/configuration.h"
+#include "src/math/rk4.h"
+#include "src/exec/simulation_executor.h"
 
 namespace pmsm {
 

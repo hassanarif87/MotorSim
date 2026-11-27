@@ -12,8 +12,8 @@ cc_test(
     size = "small",
     srcs = ["simulation_executor_test.cpp"],
     deps = [
-        "//src:rk4",
-        "//src:simulation_executor",
+        "//src/math:rk4",
+        "//src/exec:simulation_executor",
     ],
 )
 

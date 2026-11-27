@@ -4,7 +4,7 @@
 #include <chrono>
 #include <stdexcept>
 
-#include "src/configuration.h"
+#include "src/exec/configuration.h"
 #include "src/graph/block_ports.h"
 
 namespace pmsm::drive_blocks {

@@ -11,15 +11,6 @@ cc_library(
 )
 
 cc_library(
-    name = "rk4",
-    hdrs = ["rk4.h"],
-    visibility = [
-        "//src/blocks:__pkg__",
-        "//test:__pkg__",
-    ],
-)
-
-cc_library(
     name = "configuration",
     srcs = ["configuration.cpp"],
     hdrs = ["configuration.h"],
