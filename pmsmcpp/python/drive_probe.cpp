@@ -48,25 +48,31 @@ consteval WritablePort writable_output() {
 }
 
 using namespace drive_blocks;
+
+/// @brief A list of writable output ports for blocks that support external control. These are
+/// exposed to the Python wrapper for use in drive probing.
 constexpr std::array writable_ports{
     writable_output<ConstantCurrent, ^^ConstantCurrentOutputs::value>(),
     writable_output<ConstantTorque, ^^ConstantTorqueOutputs::value>(),
     writable_output<SimpleFocVelocity, ^^SimpleFocVelocity::Outputs::omega_ref>(),
 };
-
+/// @brief A scheduled change to a drive input port at a specific simulation time.
 struct ScheduledChange {
     Duration time;
     OutputReader source;
+    /// @brief Function pointer to write a new value to the source port.
     void (*write)(const void*, double);
     double value;
 };
 
+/// @brief Records a trace of the drive's outputs at a fixed period while applying scheduled changes
+/// to its inputs.
 class Sampler {
   public:
     Sampler(Drive& drive, std::vector<ScheduledChange> changes, std::size_t output_count,
             Duration start, Duration period, std::size_t samples)
-        : drive_(drive), changes_(std::move(changes)), output_count_(output_count),
-          start_(start), period_(period) {
+        : drive_(drive), changes_(std::move(changes)), output_count_(output_count), start_(start),
+          period_(period) {
         if (samples > trace_.time.max_size() || samples > trace_.values.max_size() / output_count) {
             throw std::invalid_argument("Requested trace is too large");
         }
@@ -83,6 +89,10 @@ class Sampler {
     }
 
     void record() {
+
+        // Record the drive's outputs at the configured sampling period. The simulation executor
+        // invokes this callback at the tick rate, so we check if the current time is a multiple of
+        // the sampling period.
         const auto now = drive_.executor().now();
         if (now < start_ || (now - start_) % period_ != Duration::zero()) {
             return;
@@ -139,15 +149,14 @@ double DriveProbe::tick_time() const {
     return std::chrono::duration<double>(config_.simulation.tick_interval).count();
 }
 
-double DriveProbe::sample_time() const {
-    return std::chrono::duration<double>(period_).count();
-}
+double DriveProbe::sample_time() const { return std::chrono::duration<double>(period_).count(); }
 
 DriveProbe::Trace DriveProbe::run(const std::vector<std::string>& outputs, Tick start_tick,
-                                Tick samples, Tick sample_every,
-                                const std::vector<Change>& changes) const {
+                                  Tick samples, Tick sample_every,
+                                  const std::vector<Change>& changes) const {
     if (outputs.empty() || start_tick < 0 || samples < 1 || sample_every < 1) {
-        throw std::invalid_argument("Expected output ports, nonnegative start and positive sampling");
+        throw std::invalid_argument(
+            "Expected output ports, nonnegative start and positive sampling");
     }
     const auto tick = config_.simulation.tick_interval;
     const auto max_ticks = Duration::max() / tick;
@@ -160,13 +169,15 @@ DriveProbe::Trace DriveProbe::run(const std::vector<std::string>& outputs, Tick 
     auto config = config_;
     config.log_columns.clear();
     for (const auto& output : outputs) {
-        config.log_columns.push_back({"probe_" + std::to_string(config.log_columns.size()), output});
+        config.log_columns.push_back(
+            {"probe_" + std::to_string(config.log_columns.size()), output});
     }
 
     std::unordered_map<std::string, std::size_t> source_columns;
     for (const auto& [at, port, value] : changes) {
         if (at < 0 || at > end_tick || !std::isfinite(value)) {
-            throw std::invalid_argument("Input changes require a finite value and a tick in the run");
+            throw std::invalid_argument(
+                "Input changes require a finite value and a tick in the run");
         }
         if (!writers_.contains(port)) {
             throw std::invalid_argument("Unknown writable input port: " + port);
@@ -181,12 +192,11 @@ DriveProbe::Trace DriveProbe::run(const std::vector<std::string>& outputs, Tick 
     std::vector<ScheduledChange> schedule;
     schedule.reserve(changes.size());
     for (const auto& [at, port, value] : changes) {
-        schedule.push_back({tick * at, drive.columns()[source_columns.at(port)].source,
-                            writers_.at(port), value});
+        schedule.push_back(
+            {tick * at, drive.columns()[source_columns.at(port)].source, writers_.at(port), value});
     }
-    std::stable_sort(schedule.begin(), schedule.end(), [](const auto& a, const auto& b) {
-        return a.time < b.time;
-    });
+    std::stable_sort(schedule.begin(), schedule.end(),
+                     [](const auto& a, const auto& b) { return a.time < b.time; });
 
     auto& exec = drive.executor();
     Sampler sampler(drive, std::move(schedule), outputs.size(), tick * start_tick,
