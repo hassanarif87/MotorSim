@@ -44,7 +44,10 @@ class Delegate<void(Args...)> {
     /// @param invoke The invocation function.
     Delegate(void* context, void (*invoke)(void*, Args...)) : context_(context), invoke_(invoke) {}
 
+    /// @brief The context (object) on which the member function will be invoked.
     void* context_ = nullptr;
+    /// @brief The invocation function that calls the bound member function with the provided
+    /// arguments.
     void (*invoke_)(void*, Args...) = nullptr;
 };
 } // namespace pmsm
