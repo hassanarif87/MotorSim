@@ -14,8 +14,8 @@ class SpringMassDamper {
 
   public:
     static constexpr int state_size = 2;
-    using State = StateView<SpringMassDamper>;
-    using StateDot = MutableStateView<SpringMassDamper>;
+    using State = StateView;
+    using StateDot = MutableStateView;
 
     double position = 0.0;
     double velocity = 0.0;

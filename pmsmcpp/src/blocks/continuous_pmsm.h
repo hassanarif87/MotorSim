@@ -102,19 +102,18 @@ class ContinuousPmsm {
           initial_state_(initial.iq, initial.id,
                          parameters.lock_rotor.value_or(false) ? 0.0 : initial.omega,
                          initial.theta) {
-        publish(StateView<ContinuousPmsm>{initial_state_.data()});
+        publish(initial_state_);
     }
 
     const State& initial_state() const { return initial_state_; }
 
-    void publish(StateView<ContinuousPmsm> state) {
+    void publish(StateView state) {
         const auto out = plant_.output({state[0], state[1], state[2], state[3]});
         outputs = {out.current.abc[0], out.current.abc[1], out.current.abc[2], out.omega,
                    out.theta};
     }
 
-    void derivative(StateView<ContinuousPmsm> state,
-                    MutableStateView<ContinuousPmsm> rate) const {
+    void derivative(StateView state, MutableStateView rate) const {
         const MotorInput input{{{inputs.va.read(), inputs.vb.read(), inputs.vc.read()}},
                                inputs.load_torque.read()};
         const auto out = plant_.derivative({state[0], state[1], state[2], state[3]}, input);

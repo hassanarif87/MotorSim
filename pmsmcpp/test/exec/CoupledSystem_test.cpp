@@ -18,12 +18,12 @@ struct SpringMass {
     double position = 0.0;
     double velocity = 0.0;
 
-    void publish(StateView<SpringMass> state) {
+    void publish(StateView state) {
         position = state[0];
         velocity = state[1];
     }
 
-    void derivative(StateView<SpringMass> state, MutableStateView<SpringMass> rate) const {
+    void derivative(StateView state, MutableStateView rate) const {
         rate[0] = state[1];
         rate[1] = neighbor_position.read() - state[0];
     }

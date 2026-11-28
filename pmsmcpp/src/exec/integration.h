@@ -16,8 +16,8 @@ using namespace Eigen;
 class IntegrationExecutor {
 
     using Duration = std::chrono::nanoseconds;
-    using Publish = Delegate<void(const double*)>;
-    using Derivative = Delegate<void(const double*, double*)>;
+    using Publish = Delegate<void(StateView)>;
+    using Derivative = Delegate<void(StateView, MutableStateView)>;
 
   public:
     bool empty() const { return integ_blocks_.empty(); }
@@ -33,8 +33,9 @@ class IntegrationExecutor {
 
         const IntegrableBlock registration{
             offset,
-            Publish::bind<&Registration<B>::publish>(block),
-            Derivative::bind<&Registration<B>::derivative>(block),
+            B::state_size,
+            Publish::bind<&B::publish>(block),
+            Derivative::bind<&B::derivative>(block),
         };
 
         // Allocate space for both before committing the registration.
@@ -57,8 +58,8 @@ class IntegrationExecutor {
         auto full_derivative = [this](const VectorXd& trial_state, VectorXd& state_dot) {
             publish(trial_state);
             for (const auto& block : integ_blocks_) {
-                block.derivative(trial_state.data() + block.offset,
-                                 state_dot.data() + block.offset);
+                block.derivative(trial_state.segment(block.offset, block.size),
+                                 state_dot.segment(block.offset, block.size));
             }
         };
 
@@ -77,32 +78,16 @@ class IntegrationExecutor {
     /// @param state
     void publish(const VectorXd& state) {
         for (const auto& block : integ_blocks_) {
-            block.publish(state.data() + block.offset);
+            block.publish(state.segment(block.offset, block.size));
         }
     }
     /// @brief Represents a block that can be integrated, including its state offset and
     /// callbacks for publishing and computing derivatives.
     struct IntegrableBlock {
         Index offset;
+        Index size;
         Publish publish;
         Derivative derivative;
-    };
-
-    template <ContinousBlock B>
-    struct Registration {
-
-        /// @brief Static function to publish a block outputs at the given state.
-        static void publish(B& block, const double* state) {
-            StateView<B> slice{state};
-            block.publish(slice);
-        }
-
-        /// @brief Static function to compute the derivative of a block's state.
-        static void derivative(const B& block, const double* state, double* state_dot) {
-            StateView<B> slice{state};
-            MutableStateView<B> state_dot_slice{state_dot};
-            block.derivative(slice, state_dot_slice);
-        }
     };
 
     /// @brief The current state vector of the simulation, containing the states of all

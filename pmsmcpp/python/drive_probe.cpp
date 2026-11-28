@@ -7,6 +7,7 @@
 #include <meta>
 #include <numeric>
 #include <set>
+#include <span>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
@@ -56,10 +57,11 @@ constexpr std::array writable_ports{
     writable_output<ConstantTorque, ^^ConstantTorqueOutputs::value>(),
     writable_output<SimpleFocVelocity, ^^SimpleFocVelocity::Outputs::omega_ref>(),
 };
+
 /// @brief A scheduled change to a drive input port at a specific simulation time.
 struct ScheduledChange {
     Duration time;
-    OutputReader source;
+    const void* address;
     /// @brief Function pointer to write a new value to the source port.
     void (*write)(const void*, double);
     double value;
@@ -67,50 +69,41 @@ struct ScheduledChange {
 
 /// @brief Records a trace of the drive's outputs at a fixed period while applying scheduled changes
 /// to its inputs.
-class Sampler {
-  public:
-    Sampler(Drive& drive, std::vector<ScheduledChange> changes, std::size_t output_count,
-            Duration start, Duration period, std::size_t samples)
-        : drive_(drive), changes_(std::move(changes)), output_count_(output_count), start_(start),
-          period_(period) {
-        if (samples > trace_.time.max_size() || samples > trace_.values.max_size() / output_count) {
-            throw std::invalid_argument("Requested trace is too large");
-        }
-        trace_.time.reserve(samples);
-        trace_.values.reserve(samples * output_count);
-    }
+struct Sampler {
+    const SimulationExecutor& executor;
+    /// @brief Output column
+    std::span<const Drive::Column> outputs;
+    /// @brief Scheduled input as changes to the simulation
+    std::span<const ScheduledChange> changes;
+    Duration start, period;
+    /// @brief Trace recording the sample
+    DriveProbe::Trace& trace;
 
     void apply() {
-        const auto now = drive_.executor().now();
-        while (next_ < changes_.size() && changes_[next_].time == now) {
-            const auto& change = changes_[next_++];
-            change.write(change.source.address, change.value);
+        const auto now = executor.now();
+        while (!changes.empty() && changes.front().time == now) {
+            const auto& change = changes.front();
+            change.write(change.address, change.value);
+            changes = changes.subspan(1);
         }
     }
 
     void record() {
-
         // Record the drive's outputs at the configured sampling period. The simulation executor
         // invokes this callback at the tick rate, so we check if the current time is a multiple of
         // the sampling period.
-        const auto now = drive_.executor().now();
-        if (now < start_ || (now - start_) % period_ != Duration::zero()) {
+        const auto now = executor.now();
+        if (now < start || (now - start) % period != Duration::zero()) {
             return;
         }
-        trace_.time.push_back(std::chrono::duration<double>(now).count());
-        for (std::size_t i = 0; i < output_count_; ++i) {
-            trace_.values.push_back(drive_.columns()[i].source());
+        // Time record
+        trace.time.push_back(std::chrono::duration<double>(now).count());
+
+        // Output record
+        for (const auto& output : outputs) {
+            trace.values.push_back(output.source());
         }
     }
-
-    DriveProbe::Trace trace() && { return std::move(trace_); }
-
-  private:
-    Drive& drive_;
-    std::vector<ScheduledChange> changes_;
-    std::size_t output_count_, next_ = 0;
-    Duration start_, period_;
-    DriveProbe::Trace trace_;
 };
 
 } // namespace
@@ -166,7 +159,18 @@ DriveProbe::Trace DriveProbe::run(const std::vector<std::string>& outputs, Tick 
     }
     const auto end_tick = start_tick + (samples - 1) * sample_every;
 
+    // Trace records the time and requested output values at the sample.
+    Trace trace;
+
+    // Check that the requested trace size does not exceed the maximum size of the vectors.
+    if (std::cmp_greater(samples, trace.time.max_size()) ||
+        std::cmp_greater(samples, trace.values.max_size() / outputs.size())) {
+        throw std::invalid_argument("Requested trace is too large");
+    }
+
     auto config = config_;
+
+    // Clear pre configured log columns, and fill with requested columns
     config.log_columns.clear();
     for (const auto& output : outputs) {
         config.log_columns.push_back(
@@ -192,15 +196,22 @@ DriveProbe::Trace DriveProbe::run(const std::vector<std::string>& outputs, Tick 
     std::vector<ScheduledChange> schedule;
     schedule.reserve(changes.size());
     for (const auto& [at, port, value] : changes) {
-        schedule.push_back(
-            {tick * at, drive.columns()[source_columns.at(port)].source, writers_.at(port), value});
+        schedule.push_back({tick * at, drive.columns()[source_columns.at(port)].source.address,
+                            writers_.at(port), value});
     }
     std::stable_sort(schedule.begin(), schedule.end(),
                      [](const auto& a, const auto& b) { return a.time < b.time; });
 
     auto& exec = drive.executor();
-    Sampler sampler(drive, std::move(schedule), outputs.size(), tick * start_tick,
-                    tick * sample_every, samples);
+    const auto sample_count = static_cast<std::size_t>(samples);
+    trace.time.reserve(sample_count);
+    trace.values.reserve(sample_count * outputs.size());
+    Sampler sampler{exec,
+                    std::span{drive.columns()}.first(outputs.size()),
+                    schedule,
+                    tick * start_tick,
+                    tick * sample_every,
+                    trace};
     if (!changes.empty()) {
         exec.register_tick(tick, std::numeric_limits<int>::min(),
                            SimulationExecutor::TickCallback::bind<&Sampler::apply>(sampler));
@@ -208,7 +219,7 @@ DriveProbe::Trace DriveProbe::run(const std::vector<std::string>& outputs, Tick 
     exec.register_tick(tick, std::numeric_limits<int>::max(),
                        SimulationExecutor::TickCallback::bind<&Sampler::record>(sampler));
     exec.run(tick * end_tick);
-    return std::move(sampler).trace();
+    return trace;
 }
 
 } // namespace pmsm

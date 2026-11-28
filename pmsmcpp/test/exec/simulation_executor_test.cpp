@@ -52,10 +52,9 @@ struct HeldInputBlock {
     mutable int stages = 0;
     std::vector<double> samples;
 
-    void publish(pmsm::StateView<HeldInputBlock> state) { published = state[0]; }
+    void publish(pmsm::StateView state) { published = state[0]; }
 
-    void derivative(pmsm::StateView<HeldInputBlock>,
-                    pmsm::MutableStateView<HeldInputBlock> rate) const {
+    void derivative(pmsm::StateView, pmsm::MutableStateView rate) const {
         ++stages;
         rate[0] = external_input ? *external_input : input;
     }
