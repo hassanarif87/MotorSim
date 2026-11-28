@@ -48,31 +48,28 @@ class IntegrationExecutor {
     /// @param interval The time interval to advance the simulation in nanoseconds. Must be
     /// non-negative.
     void advance(std::chrono::nanoseconds interval) {
-
-        // Compute the time step in seconds for the integration.
+        // Standalone callers can also advance before initialize().
+        if (!initialized_) {
+            rk4_.resize_like(state_);
+        }
         const double dt = std::chrono::duration<double>(interval).count();
 
-        // Lambda function to compute the full derivative of the state vector.
-        auto full_derivative = [this](const Eigen::VectorXd& trial_state) {
+        auto full_derivative = [this](const VectorXd& trial_state, VectorXd& state_dot) {
             publish(trial_state);
-            VectorXd state_dot(trial_state.size());
-
             for (const auto& block : integ_blocks_) {
                 block.derivative(trial_state.data() + block.offset,
                                  state_dot.data() + block.offset);
             }
-            return state_dot;
         };
 
-        // Perform a single Runge-Kutta 4th order integration step.
-        state_ = rk4_step(state_, dt, full_derivative);
-
-        // Publish the updated outputs.
-        this->publish(state_);
+        rk4_.step(state_, dt, full_derivative);
+        publish(state_);
     }
+
     void initialize() {
-        this->publish(state_);
-        this->initialized_ = true;
+        rk4_.resize_like(state_);
+        publish(state_);
+        initialized_ = true;
     }
 
   private:
@@ -111,6 +108,7 @@ class IntegrationExecutor {
     /// @brief The current state vector of the simulation, containing the states of all
     /// registered
     Eigen::VectorXd state_;
+    Rk4<Eigen::VectorXd> rk4_;
 
     /// @brief List of registered integrable blocks, each with its state offset and callbacks.
     std::vector<IntegrableBlock> integ_blocks_;

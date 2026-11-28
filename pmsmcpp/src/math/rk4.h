@@ -1,22 +1,38 @@
 #pragma once
 
+#include <array>
+
 namespace pmsm {
 
-/// @brief  Performs a single step of the fourth-order Runge-Kutta (RK4) integration method for
-/// solving ordinary differential equations (ODEs).
-/// @tparam State, a type representing the state of the system.
-/// @tparam Derivative, a callable type that takes a State and returns its derivative.
-/// @param state The current state of the system.
-/// @param dt The time step for the integration.
-/// @param derivative A callable that computes the derivative of the state given the current state.
-/// @return The propagated state of the system after advancing by dt.
-template <typename State, typename Derivative>
-State rk4_step(const State& state, double dt, const Derivative& derivative) {
-    const State k1 = derivative(state);
-    const State k2 = derivative(state + dt / 2.0 * k1);
-    const State k3 = derivative(state + dt / 2.0 * k2);
-    const State k4 = derivative(state + dt * k3);
-    return state + dt / 6.0 * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
-}
+/// Fourth-order Runge–Kutta stepper with reusable trial and rate buffers.
+template <typename State>
+class Rk4 {
+  public:
+    void resize_like(const State& state) {
+        for (auto& rate : rates_) {
+            rate.resize(state.size());
+        }
+        trial_.resize(state.size());
+    }
+
+    /// Advance the state in place. The derivative fills the supplied rate buffer.
+    /// Call resize_like() before stepping a state of a new size.
+    template <typename Derivative>
+    void step(State& state, double dt, const Derivative& derivative) {
+        auto& [k1, k2, k3, k4] = rates_;
+        derivative(state, k1);
+        trial_.noalias() = state + dt / 2.0 * k1;
+        derivative(trial_, k2);
+        trial_.noalias() = state + dt / 2.0 * k2;
+        derivative(trial_, k3);
+        trial_.noalias() = state + dt * k3;
+        derivative(trial_, k4);
+        state = state + dt / 6.0 * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
+    }
+
+  private:
+    State trial_;
+    std::array<State, 4> rates_;
+};
 
 } // namespace pmsm
