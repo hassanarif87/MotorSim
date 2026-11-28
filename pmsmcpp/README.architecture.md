@@ -11,27 +11,28 @@ with `bazel test //test/...`.
 | File | Responsibility |
 | --- | --- |
 | [`main.cpp`](main.cpp) | Loads the config, constructs the drive, and registers the CSV logger. |
-| [`configuration.h`](src/configuration.h) | Uses reflect-cpp to load JSON into typed simulation and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
+| [`configuration.h`](src/exec/configuration.h) | Uses reflect-cpp to load JSON into typed simulation and block specifications. Converts digital rates in Hz to integer nanosecond periods. |
 | [`drive/drive.h`](src/drive/drive.h) | Constructs the configured model. Owns block instances and the executor and binds callbacks at startup. |
 | [`drive/block_catalog.cpp`](src/drive/block_catalog.cpp) | Lists the block types available to JSON configs and maps each type name to its factory. |
 | [`graph/block_ports.h`](src/graph/block_ports.h) | Defines the shared typed input port and signal quantities used by components. |
 | [`graph/block_graph.h`](src/graph/block_graph.h) | Uses C++26 reflection to discover named ports, validate connections, and resolve CSV readers. |
 | [`src/blocks/`](src/blocks/) | Defines each component's equations, connectable wrapper, and reflected ports in its own header. |
-| [`simulation_executor.h`](src/simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
+| [`simulation_executor.h`](src/exec/simulation_executor.h) | Advances simulation time and dispatches the continuous and digital callbacks. |
 
 Each factory reads its block's parameter object into a local C++ struct.
 The graph's name maps exist during drive construction. Once validation
 succeeds, each input holds a typed pointer to its source value. CSV readers
 also retain the addresses they resolve at startup. Blocks publish values into
 their own output storage, so a consumer sees the latest published value when
-it reads its input. Each block owns its internal state.
+it reads its input.
 
-The factory uses executor concepts to identify a block's `tick()` or
-`advance(dt)` method and register it automatically. The executor stores
-periodic callbacks in a fixed-capacity array. A delegate holds an
-object pointer and a dispatch function pointer. Binding and calling these
-delegates requires no heap allocation. The drive owns the block instances
-for the duration of the run, and the logger stays alive through the run.
+The factory uses block concepts to register periodic and continuous blocks.
+The executor stores periodic callbacks in a fixed-capacity array and owns the
+shared integrator. The integrator owns the packed continuous state and uses
+delegates to publish trial outputs before each RK4 derivative pass. It
+publishes the accepted state before the next periodic callbacks. The drive
+owns the block instances for the duration of the run, and the logger stays
+alive through the run.
 
 ## Signal flow
 
@@ -74,7 +75,7 @@ until their next ticks.
 
 ## Results
 
-The [CSV logger](src/csv_logger.h) reads the configured ports on its own clock. It records
+The [CSV logger](src/exec/csv_logger.h) reads the configured ports on its own clock. It records
 `time_s` from the executor, then the latest values of the selected inputs
 and outputs. It samples at zero and at the final time, including a final row
 when the end falls between logging ticks. The
