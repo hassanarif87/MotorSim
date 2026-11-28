@@ -87,17 +87,26 @@ class SimulationExecutor {
             throw std::logic_error(
                 "Expected a single run with continuous blocks and valid end time");
         }
+
+        // Start flag
         started_ = true;
         integrator_.initialize();
+
+        // Compute the index of the last tick to process based on the end time and tick interval.
         const auto last_tick_index = end / tick_interval_;
+
+        // Process each tick up to the last tick index, invoking due periodic blocks and advancing
+        // the integrator.
         for (Duration::rep tick_index = 0; tick_index < last_tick_index; ++tick_index) {
             tick_due_blocks(tick_index);
             integrator_.advance(tick_interval_);
             now_ += tick_interval_;
         }
+
         // Run callbacks at the last tick boundary, even when it is the end time.
         tick_due_blocks(last_tick_index);
 
+        // Handle any remaining time after the last full tick.
         const auto remainder = end % tick_interval_;
         if (remainder != Duration::zero()) {
             integrator_.advance(remainder);
