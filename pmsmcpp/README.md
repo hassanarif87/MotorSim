@@ -9,7 +9,7 @@ Bazel 8.4.0.
 cd pmsmcpp
 bazel build //:pmsm_sim
 bazel test //test/...
-bazel run //:pmsm_sim -- pmsm_config.json
+bazel run //:pmsm_sim -- configs/simplefoc_config.json
 ```
 
 Pass the JSON configuration path first. The optional second argument sets the
@@ -43,7 +43,7 @@ already represents the JSON fields.
 #pragma once
 
 #include "src/graph/block_ports.h"
-#include "src/configuration.h"
+#include "src/exec/configuration.h"
 
 namespace pmsm::drive_blocks {
 
@@ -76,33 +76,19 @@ private:
 }  // namespace pmsm::drive_blocks
 ```
 
-Add this library to [`src/blocks/BUILD.bazel`](src/blocks/BUILD.bazel).
-
-```python
-cc_library(
-    name = "current_gain",
-    hdrs = ["current_gain.h"],
-    deps = [
-        "//src/graph:block_ports",
-        "//src:configuration",
-    ],
-)
-```
-
-Add `//src/blocks:current_gain` to the `drive` target's dependencies in
-[`src/drive/BUILD.bazel`](src/drive/BUILD.bazel).
+The [`//src/blocks` library](src/blocks/BUILD.bazel) picks up the new header automatically.
 
 In [`src/drive/block_catalog.cpp`](src/drive/block_catalog.cpp), include `src/blocks/current_gain.h`
 and append `X(CurrentGain)` to `PMSM_BLOCK_TYPES`. Add a
 trailing backslash to the previous entry. The factory checks the block
-contract at compile time and registers the callback automatically. Use
-`void tick()` for a periodic block or
-`void advance(SimulationExecutor::Duration)` for a continuous block.
+contract at compile time and registers the block automatically. A periodic block
+implements `void tick()`. A continuous block declares `state_size` and implements
+`initial_state()`, `publish(state)`, and a const `derivative(state, rate)`.
 A constant source declares `static constexpr bool is_constant = true`
 and can publish its outputs in its constructor. Each block chooses one
 of these three forms.
 
-Start with a fresh copy of the default config and add this instance to
+Start with a fresh copy of `configs/simplefoc_config.json` and add this instance to
 `blocks`.
 
 ```json
@@ -124,9 +110,9 @@ Replace `["current_pi.iq_ref", "speed_control.iq_ref"]` with these two routes.
 ]
 ```
 
-The gain runs before the PI when their ticks coincide. With the default
-3 A startup request from the speed controller, the logged PI reference
-starts at 1.5 A. Rebuild and check the run with the commands below.
+The gain runs before the PI when their ticks coincide. Once the speed
+controller publishes its 3 A startup request, the gain passes 1.5 A to
+the current controller. Rebuild and check the run with the commands below.
 
 ```sh
 bazel test //test/...
@@ -237,3 +223,42 @@ duty based on phase current. The correction tapers linearly to zero within
 `zero_current_band_a` (0.05 A). Set the compensation block's `dead_time_s` to
 zero for a baseline run with the inverter's dead time still active. The CSV
 includes the raw duties and the `duty_*_compensated` commands before the latch.
+
+## Run the SimpleFOC speed loop with a switching inverter
+
+```sh
+bazel run //:pmsm_sim -- configs/simplefoc_switching_inverter_config.json /tmp/simplefoc_switching.csv
+```
+
+`PwmSignals` converts SVPWM duties to six complementary, center-aligned
+gate commands. A duty captured at one carrier boundary is applied at the
+next boundary. When a leg changes state, the outgoing switch turns off
+immediately and the incoming switch waits for the configured dead time.
+
+`SwitchingInverter` computes the three motor-neutral phase voltages from the
+gates and phase currents. It models on-state resistance and a fixed diode
+drop during dead time. When both gates are off and phase current is exactly
+zero, the model uses the bus midpoint for that pole.
+
+The profile uses a 20 kHz carrier and a 100 ns simulation tick, so the
+500 ns dead time spans five ticks. PWM pulse widths are rounded to the
+nearest simulation tick. Set `log_rate_hz` to `10000000` for a short run if
+you need to inspect every gate transition.
+
+## Compare switching-inverter dead-time compensation
+
+```sh
+bazel run //:pmsm_sim -- configs/simplefoc_switching_inverter_config.json /tmp/switching_off.csv
+bazel run //:pmsm_sim -- configs/simplefoc_switching_dead_time_compensation_config.json /tmp/switching_on.csv
+```
+
+Both profiles keep 500 ns of gate dead time at a 20 kHz PWM carrier. The
+compensated profile adjusts the duty commands between SVPWM and `PwmSignals`
+and logs the adjusted values as `duty_*_compensated`.
+
+Over the final 200 ms of the 400 ms run, compensation reduced speed RMS
+tracking error from 3.01 to 2.17 rad/s and q-axis current error from 0.171 to
+0.134 A. The d-axis current error increased from 0.0151 to 0.0768 A. Current
+errors use the measured dq currents and their logged references.
+
+[Switching-inverter comparison plot](simplefoc_switching_dead_time_compensation_comparison.png)
