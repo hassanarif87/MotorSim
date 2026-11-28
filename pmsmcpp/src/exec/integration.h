@@ -20,6 +20,8 @@ class IntegrationExecutor {
     using Derivative = Delegate<void(const double*, double*)>;
 
   public:
+    bool empty() const { return integ_blocks_.empty(); }
+
     template <ContinousBlock B>
     void add(B& block, Vector<double, B::state_size>& initial_state) {
         if (initialized_) {
@@ -36,10 +38,10 @@ class IntegrationExecutor {
         };
 
         // Allocate space for both before committing the registration.
-        blocks_.reserve(blocks_.size() + 1);
+        integ_blocks_.reserve(integ_blocks_.size() + 1);
         state_.conservativeResize(offset + B::state_size);
         state_.segment<B::state_size>(offset) = initial_state;
-        blocks_.push_back(registration);
+        integ_blocks_.push_back(registration);
     }
 
     /// @brief Advances the simulation by the specified time interval.
@@ -55,7 +57,7 @@ class IntegrationExecutor {
             publish(trial_state);
             VectorXd state_dot(trial_state.size());
 
-            for (const auto& block : blocks_) {
+            for (const auto& block : integ_blocks_) {
                 block.derivative(trial_state.data() + block.offset,
                                  state_dot.data() + block.offset);
             }
@@ -77,7 +79,7 @@ class IntegrationExecutor {
     /// @brief Publishes the outputs of all registered blocks at the given state.
     /// @param state
     void publish(const VectorXd& state) {
-        for (const auto& block : blocks_) {
+        for (const auto& block : integ_blocks_) {
             block.publish(state.data() + block.offset);
         }
     }
@@ -111,7 +113,7 @@ class IntegrationExecutor {
     Eigen::VectorXd state_;
 
     /// @brief List of registered integrable blocks, each with its state offset and callbacks.
-    std::vector<IntegrableBlock> blocks_;
+    std::vector<IntegrableBlock> integ_blocks_;
 
     /// @brief List of registered integrable blocks, each with its state offset and callbacks.
     bool initialized_ = false;

@@ -7,6 +7,7 @@
 
 #include "src/exec/block_interface.h"
 #include "src/exec/delegate.h"
+#include "src/exec/integration.h"
 
 namespace pmsm {
 
@@ -40,14 +41,23 @@ class SimulationExecutor {
     template <typename Block>
         requires AdvanceBlock<Block, Duration> && (!TickBlock<Block>)
     void register_block(Block& block) {
-        if (started_ || advance_) {
+        if (started_ || has_continuous_block()) {
             throw std::logic_error("Expected one continuous block registered before run");
         }
         advance_ =
             AdvanceCallback::bind<static_cast<void (Block::*)(Duration)>(&Block::advance)>(block);
     }
+    template <ContinousBlock B>
+    void register_block(B& block, Eigen::Vector<double, B::state_size> initial_state) {
+        if (started_ || advance_) {
+            throw std::logic_error("Register integrated blocks before run without a legacy block");
+        }
+        integrator_.add(block, initial_state);
+    }
 
-    bool has_continuous_block() const { return static_cast<bool>(advance_); }
+    bool has_continuous_block() const {
+        return !integrator_.empty() || static_cast<bool>(advance_);
+    }
 
     /// @brief Registers a periodic block with the simulation executor.
     /// @param period The period of the block, must be a multiple of the tick interval.
@@ -84,18 +94,21 @@ class SimulationExecutor {
 
     /// @brief Runs the simulation until the specified end time, invoking registered blocks as
     /// appropriate.
-    /// @param end The end time of the simulation. Must be non-negative and greater than the current
-    /// time.
+    /// @param end The end time of the simulation. Must be non-negative and greater than the
+    /// current time.
     void run(Duration end) {
-        if (started_ || !advance_ || end < Duration::zero()) {
+        if (started_ || !has_continuous_block() || end < Duration::zero()) {
             throw std::logic_error(
-                "Expected a single run with a continuous callback and valid end time");
+                "Expected a single run with continuous blocks and valid end time");
         }
         started_ = true;
+        if (!integrator_.empty()) {
+            integrator_.initialize();
+        }
         const auto last_tick_index = end / tick_interval_;
         for (Duration::rep tick_index = 0; tick_index < last_tick_index; ++tick_index) {
             tick_due_blocks(tick_index);
-            advance_(tick_interval_);
+            advance_continuous(tick_interval_);
             now_ += tick_interval_;
         }
         // Run callbacks at the last tick boundary, even when it is the end time.
@@ -103,7 +116,7 @@ class SimulationExecutor {
 
         const auto remainder = end % tick_interval_;
         if (remainder != Duration::zero()) {
-            advance_(remainder);
+            advance_continuous(remainder);
             now_ = end;
         }
     }
@@ -121,6 +134,13 @@ class SimulationExecutor {
         }
     }
 
+    void advance_continuous(Duration interval) {
+        if (integrator_.empty()) {
+            advance_(interval);
+        } else {
+            integrator_.advance(interval);
+        }
+    }
     /// @brief Represents a periodic block in the simulation.
     struct PeriodicBlock {
         /// @brief The number of ticks between invocations of the block's tick callback.
@@ -130,6 +150,8 @@ class SimulationExecutor {
         /// @brief The callback function to invoke for the block.
         TickCallback tick;
     };
+
+    IntegrationExecutor integrator_;
 
     /// @brief The interval between simulation ticks in nanoseconds.
     Duration tick_interval_;
