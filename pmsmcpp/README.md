@@ -262,3 +262,75 @@ tracking error from 3.01 to 2.17 rad/s and q-axis current error from 0.171 to
 errors use the measured dq currents and their logged references.
 
 [Switching-inverter comparison plot](simplefoc_switching_dead_time_compensation_comparison.png)
+
+## Sampled drive analysis in Python
+
+From the repository root, with the project's Python environment active,
+build the pybind11 extension with the simulator's Bazel/GCC 16 toolchain.
+
+```sh
+uv pip install pybind11
+PYTHON="$(command -v python)" pmsmcpp/scripts/build_python.sh
+```
+
+```python
+import control as ct
+from motorsim.models.drive import DriveModel
+
+drive = DriveModel("pmsmcpp/configs/simplefoc_locked_rotor_config.json")
+print(drive.input_ports)
+print(drive.output_ports)
+system, point = drive.linearize("current_reference.value", "current_feedback.iq")
+print(system.pole())
+ct.bode_plot(system)
+```
+
+The wrapper runs the existing C++ drive and scheduler. For linearization it
+measures a settled baseline, then applies equal positive and negative steps
+to each selected input independently. All selected outputs are sampled in the
+same run at a common scheduler phase. Pass lists of port names to identify a
+joint model and pass a sequence of `delta` values to set each input's
+perturbation amplitude. The locked-rotor example operates around 2 A and
+samples every 50 µs.
+
+The returned state-space model is a realization of the selected input/output
+response. Its poles describe the modes visible through those ports. Internal
+state stability requires analysis with access to the full simulation state.
+The wrapper checks baseline drift, perturbation symmetry, and the realized
+response against the measurements. Use `delta`, `settle_samples`, and
+`samples` to adjust the experiment. For a drive whose outputs are periodic
+in rotor phase, the selected output must settle at the sampled phase.
+
+`input_ports` lists the constant-current, constant-torque, and velocity
+reference ports available in the selected configuration. The wrapper uses
+C++ reflection for their block type, member name, and signal type. `output_ports`
+lists the configured numeric log ports and writable source ports. Other
+numeric ports can be selected by name.
+
+Use `run()` to schedule absolute input values and record several named ports
+in a single experiment.
+
+```python
+time_s, values = drive.run(
+    ["current_feedback.iq", "current_pi.iq_filtered", "current_pi.vq"],
+    samples=400,
+    changes=[(25, "current_reference.value", 2.01),
+             (100, "current_reference.value", 2.0)],
+)
+```
+
+Changes are expressed as `(integration_tick, port, value)` and run before the
+drive's callbacks on that tick. Sampling happens after the callbacks. Set
+`start_tick` and `sample_every` to control which ticks are recorded.
+`sample_every` defaults to the common scheduler period in ticks, and
+`drive.tick_time` gives the duration of one integration tick. The returned
+NumPy arrays contain timestamps in seconds and values with a column for each
+requested port. Each call starts a fresh drive. Recording uses one scheduler
+callback slot, and scheduled changes use a second slot.
+
+The same configuration runs through the existing CLI for time-domain traces.
+
+```sh
+cd pmsmcpp
+bazel run //:pmsm_sim -- configs/simplefoc_locked_rotor_config.json /tmp/locked_rotor.csv
+```

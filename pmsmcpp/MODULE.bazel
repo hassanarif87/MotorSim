@@ -9,3 +9,6 @@ bazel_dep(name = "eigen", version = "3.4.1")
 bazel_dep(name = "csv-parser", version = "2.3.0")
 bazel_dep(name = "reflect-cpp", version = "0.26.2")
 bazel_dep(name = "googletest", version = "1.15.2", dev_dependency = True)
+
+python_headers = use_repo_rule("//:python/headers.bzl", "python_headers")
+python_headers(name = "motorsim_python_headers")

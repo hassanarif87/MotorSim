@@ -12,3 +12,23 @@ cc_binary(
         "//src/drive",
     ],
 )
+
+cc_binary(
+    name = "_pmsmcpp.so",
+    srcs = [
+        "python/bindings.cpp",
+        "python/drive_probe.cpp",
+        "python/drive_probe.h",
+    ],
+    copts = ["-freflection"],
+    linkshared = True,
+    # Keep the GCC runtime private when Python has already loaded another libstdc++.
+    linkopts = ["-Wl,--push-state,-Bstatic,-lstdc++,--pop-state,--exclude-libs,libstdc++.a"],
+    tags = ["manual", "no-sandbox"],
+    deps = [
+        "//src/blocks",
+        "//src/exec:configuration",
+        "//src/drive",
+        "@motorsim_python_headers//:headers",
+    ],
+)
