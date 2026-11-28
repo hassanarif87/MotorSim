@@ -3,6 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "block_interface",
     hdrs = ["block_interface.h"],
+    visibility = ["//src/blocks:__pkg__"],
     deps = ["@eigen//:eigen"],
 )
 
@@ -34,6 +35,7 @@ cc_library(
     deps = [
         ":block_interface",
         ":delegate",
+        ":integration",
     ],
 )
 

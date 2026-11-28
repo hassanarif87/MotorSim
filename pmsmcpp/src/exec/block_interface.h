@@ -11,9 +11,6 @@ namespace pmsm {
 template <typename B>
 concept TickBlock = requires { static_cast<void (B::*)()>(&B::tick); };
 
-template <typename B, typename Duration>
-concept AdvanceBlock = requires { static_cast<void (B::*)(Duration)>(&B::advance); };
-
 /// @brief Const view of a block's state vector, used for reading the state without copying or
 /// modifying it.
 /// @tparam B Model block type, must define a static member StateSize.

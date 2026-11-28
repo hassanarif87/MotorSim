@@ -1,13 +1,11 @@
 #pragma once
 
-#include <chrono>
 #include <optional>
 
-#include "src/graph/block_ports.h"
 #include "src/blocks/transforms.h"
 #include "src/exec/configuration.h"
-#include "src/math/rk4.h"
-#include "src/exec/simulation_executor.h"
+#include "src/exec/block_interface.h"
+#include "src/graph/block_ports.h"
 
 namespace pmsm {
 
@@ -93,47 +91,42 @@ struct PlantOutputs {
 
 class ContinuousPmsm {
   public:
+    static constexpr int state_size = 4;
+    using State = Eigen::Vector<double, state_size>;
+
     explicit ContinuousPmsm(const BlockSpec& spec)
         : ContinuousPmsm(spec.read_parameters<MotorParameters>()) {}
 
     explicit ContinuousPmsm(const MotorParameters& parameters, MotorState initial = {})
-        : plant_(parameters), state_(initial) {
-        if (parameters.lock_rotor.value_or(false)) {
-            state_.omega = 0.0;
-        }
-        publish();
+        : plant_(parameters),
+          initial_state_(initial.iq, initial.id,
+                         parameters.lock_rotor.value_or(false) ? 0.0 : initial.omega,
+                         initial.theta) {
+        publish(StateView<ContinuousPmsm>{initial_state_.data()});
     }
 
-    void advance(SimulationExecutor::Duration interval) {
-        // Sample the held inputs once for all four RK4 stages.
+    const State& initial_state() const { return initial_state_; }
+
+    void publish(StateView<ContinuousPmsm> state) {
+        const auto out = plant_.output({state[0], state[1], state[2], state[3]});
+        outputs = {out.current.abc[0], out.current.abc[1], out.current.abc[2], out.omega,
+                   out.theta};
+    }
+
+    void derivative(StateView<ContinuousPmsm> state,
+                    MutableStateView<ContinuousPmsm> rate) const {
         const MotorInput input{{{inputs.va.read(), inputs.vb.read(), inputs.vc.read()}},
                                inputs.load_torque.read()};
-        const State initial(state_.iq, state_.id, state_.omega, state_.theta);
-        const auto derivative = [this, &input](const State& trial) {
-            const auto rate = plant_.derivative({trial[0], trial[1], trial[2], trial[3]}, input);
-            return State(rate.iq, rate.id, rate.omega, rate.theta);
-        };
-
-        const auto accepted =
-            rk4_step(initial, std::chrono::duration<double>(interval).count(), derivative);
-        state_ = {accepted[0], accepted[1], accepted[2], accepted[3]};
-        publish();
+        const auto out = plant_.derivative({state[0], state[1], state[2], state[3]}, input);
+        rate << out.iq, out.id, out.omega, out.theta;
     }
 
     PlantInputs inputs;
     PlantOutputs outputs;
 
   private:
-    using State = Eigen::Vector4d;
-
-    void publish() {
-        const auto out = plant_.output(state_);
-        outputs = {out.current.abc[0], out.current.abc[1], out.current.abc[2], out.omega,
-                   out.theta};
-    }
-
     PmsmPlant plant_;
-    MotorState state_;
+    const State initial_state_;
 };
 
 } // namespace drive_blocks

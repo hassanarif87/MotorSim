@@ -42,7 +42,7 @@ class Drive {
             }
         }
         if (!executor_.has_continuous_block()) {
-            throw std::invalid_argument("Exactly one continuous block is required");
+            throw std::invalid_argument("At least one continuous block is required");
         }
         graph.connect(config.connections);
         std::unordered_set<std::string> headers{"time_s"};
@@ -69,26 +69,22 @@ class Drive {
     template <typename Block>
     static void add(Drive& drive, BlockGraph& graph, const BlockSpec& spec) {
         constexpr bool periodic = TickBlock<Block>;
-        constexpr bool continuous = AdvanceBlock<Block, SimulationExecutor::Duration>;
+        constexpr bool continuous = ContinousBlock<Block>;
         constexpr bool constant = requires { requires Block::is_constant; };
         static_assert(
             periodic + continuous + constant == 1,
-            "A block must implement void tick(), void advance(Duration), or declare is_constant");
+            "A block must implement void tick(), the continuous block interface, or declare is_constant");
 
         const auto period = spec.period();
         if (period.has_value() != periodic) {
             throw std::invalid_argument(periodic ? "A periodic block requires rate_hz"
                                                  : "This block has no digital clock");
         }
-        if (continuous && drive.executor_.has_continuous_block()) {
-            throw std::invalid_argument("Exactly one continuous block is supported");
-        }
-
         auto block = std::make_shared<Block>(spec);
         graph.add(spec.name, block->inputs, block->outputs);
         drive.blocks_.push_back(block);
         if constexpr (continuous) {
-            drive.executor_.register_block(*block);
+            drive.executor_.register_block(*block, block->initial_state());
         } else if constexpr (periodic) {
             drive.executor_.register_block(*block, *period, spec.tick_priority());
         }
