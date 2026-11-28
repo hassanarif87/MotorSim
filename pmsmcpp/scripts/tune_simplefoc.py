@@ -36,7 +36,7 @@ def step_metrics(path, signal, target):
 
 
 def main():
-    here = Path(__file__).resolve().parent
+    here = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("loop", choices=("current", "velocity"))
     parser.add_argument("parameter", choices=("P", "I", "D", "output_ramp"))

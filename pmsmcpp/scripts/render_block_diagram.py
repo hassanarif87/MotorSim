@@ -6,7 +6,7 @@ from pathlib import Path
 from graphviz import Digraph
 
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[1]
 
 
 def render_block_diagram(

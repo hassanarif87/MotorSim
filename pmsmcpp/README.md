@@ -142,8 +142,8 @@ feedback, dq voltage commands, and phase duties.
 ```sh
 bazel build //:pmsm_sim
 bazel run //:pmsm_sim -- configs/simplefoc_config.json /tmp/simplefoc.csv
-python3 tune_simplefoc.py current P 0.15 0.25 0.4 --target 1
-python3 tune_simplefoc.py velocity P 0.04 0.08 0.16 --target 100
+python3 scripts/tune_simplefoc.py current P 0.15 0.25 0.4 --target 1
+python3 scripts/tune_simplefoc.py velocity P 0.04 0.08 0.16 --target 100
 ```
 
 The current sweep locks the simulated shaft at rest to isolate the
@@ -208,7 +208,7 @@ The profile uses example values of 0.5 µs for `dead_time_s` and 20 mΩ for
 both parameters. Set both to zero to model the PWM latch delay alone. The
 bridge uses cycle-averaged voltages and a fixed DC bus.
 
-Use the profile with `tune_simplefoc.py --config configs/simplefoc_nonideal_inverter_config.json`.
+Use the profile with `scripts/tune_simplefoc.py --config configs/simplefoc_nonideal_inverter_config.json`.
 
 ## Run the SimpleFOC speed loop with dead-time compensation
 

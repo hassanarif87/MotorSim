@@ -79,4 +79,4 @@ The [CSV logger](src/exec/csv_logger.h) reads the configured ports on its own cl
 `time_s` from the executor, then the latest values of the selected inputs
 and outputs. It samples at zero and at the final time, including a final row
 when the end falls between logging ticks. The
-[XY notebook](plot_pmsm_results.ipynb) reads the generated CSV for analysis.
+[XY notebook](scripts/plot_pmsm_results.ipynb) reads the generated CSV for analysis.
