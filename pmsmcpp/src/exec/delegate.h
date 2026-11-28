@@ -4,6 +4,8 @@
 #include <functional> // std invoke
 namespace pmsm {
 
+/// @brief A delegate class for binding member functions to callbacks.
+/// @tparam Signature The signature of the function to be bound.
 template <typename Signature>
 class Delegate;
 
